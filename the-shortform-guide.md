@@ -1,5 +1,17 @@
 # The Shorthand Guide to ECC
 
+This essay was adapted from ECC 2.2.3. ECCforCursor installs only into Cursor. Plugin `ecc-for-cursor`. Repository https://github.com/balloutcode/ECCforCursor. Memory `~/.cursor/ecc`.
+
+```powershell
+.\install.ps1 --profile full --target cursor --enable-hooks
+```
+
+```bash
+./install.sh --profile full --target cursor --enable-hooks
+```
+
+Do not install Claude Code, Codex, OpenCode, or Kimi to use this fork. Where the essay names `~/.claude/`, use `.cursor/`.
+
 ![Header: Anthropic Hackathon Winner - Tips & Tricks for Claude Code](./assets/images/shortform/00-header.png)
 
 ---
@@ -21,12 +33,12 @@ After a long session of coding with Opus 4.5, you want to clean out dead code an
 
 ECC still ships a `commands/` layer, but it is best thought of as legacy slash-entry compatibility during migration. The durable logic should live in skills.
 
-- **Skills**: `~/.claude/skills/` - canonical workflow definitions
-- **Commands**: `~/.claude/commands/` - legacy slash-entry shims when you still need them
+- **Skills**: `.cursor/skills/` - canonical workflow definitions
+- **Commands**: `.cursor/commands/` - legacy slash-entry shims when you still need them
 
 ```bash
 # Example skill structure
-~/.claude/skills/
+.cursor/skills/
   pmx-guidelines.md      # Project-specific patterns
   coding-standards.md    # Language best practices
   tdd-workflow/          # Multi-file skill with SKILL.md
@@ -81,7 +93,7 @@ Subagents work nicely with skills - a subagent capable of executing a subset of 
 
 ```bash
 # Example subagent structure
-~/.claude/agents/
+.cursor/agents/
   planner.md           # Feature implementation planning
   architect.md         # System design decisions
   tdd-guide.md         # Test-driven development
@@ -104,7 +116,7 @@ Your `.rules` folder holds `.md` files with best practices Claude should ALWAYS 
 2. **Rules folder** - Modular `.md` files grouped by concern
 
 ```bash
-~/.claude/rules/
+.cursor/rules/
   security.md      # No hardcoded secrets, validate inputs
   coding-style.md  # Immutability, file organization
   testing.md       # TDD workflow, 80% coverage
@@ -149,7 +161,7 @@ Your 200k context window before compacting might only be 70k with too many tools
 # Check enabled MCPs
 /mcp
 
-# Disable unused ones in ~/.claude/settings.json or in the current repo's .mcp.json
+# Disable unused MCP servers in Cursor's MCP settings. Do not edit ~/.claude/settings.json for this fork.
 ```
 
 ---
@@ -160,13 +172,7 @@ Plugins package tools for easy installation instead of tedious manual setup. A p
 
 **Installing plugins:**
 
-```bash
-# Add a marketplace
-# mgrep plugin by @mixedbread-ai
-claude plugin marketplace add https://github.com/mixedbread-ai/mgrep
-
-# Open Claude, run /plugins, find new marketplace, install from there
-```
+This fork does not install Claude Code plugins. Configure MCP servers in Cursor. Do not run `claude plugin marketplace add`.
 
 ![Marketplaces tab showing mgrep](./assets/images/shortform/06-marketplaces-mgrep.jpeg)
 *Displaying the newly installed Mixedbread-Grep marketplace*
@@ -374,7 +380,7 @@ affoon:~ ctx:65% Opus 4.5 19:52
 ### Rules Structure
 
 ```
-~/.claude/rules/
+.cursor/rules/
   security.md      # Mandatory security checks
   coding-style.md  # Immutability, file size limits
   testing.md       # TDD, 80% coverage
@@ -388,7 +394,7 @@ affoon:~ ctx:65% Opus 4.5 19:52
 ### Subagents
 
 ```
-~/.claude/agents/
+.cursor/agents/
   planner.md           # Break down features
   architect.md         # System design
   tdd-guide.md         # Write tests first

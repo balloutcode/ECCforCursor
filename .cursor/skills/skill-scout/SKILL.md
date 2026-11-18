@@ -49,7 +49,7 @@ find ~/.claude/plugins/marketplaces -path '*/skills/*/SKILL.md' 2>/dev/null | gr
 Then search frontmatter descriptions:
 
 ```bash
-grep -RilE "keyword|synonym" ~/.claude/skills ~/.claude/plugins/marketplaces 2>/dev/null
+grep -RilE "keyword|synonym" .cursor/skills skills 2>/dev/null
 ```
 
 ### Step 3 - Search Remote Sources
@@ -66,7 +66,7 @@ For web search, use at most three targeted queries such as:
 ```text
 "claude code skill" keyword
 "SKILL.md" keyword
-"affaan-m/ECC" keyword
+"balloutcode/ECCforCursor" keyword
 ```
 
 ### Step 4 - Vet External Matches

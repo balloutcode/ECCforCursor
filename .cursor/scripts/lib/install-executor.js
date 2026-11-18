@@ -462,7 +462,7 @@ function createLegacyInstallPlan(options = {}) {
   const sourceRoot = options.sourceRoot || getSourceRoot();
   const projectRoot = options.projectRoot || process.cwd();
   const homeDir = options.homeDir || process.env.HOME || os.homedir();
-  const target = options.target || 'claude';
+  const target = options.target || 'cursor';
 
   validateLegacyTarget(target);
 
@@ -532,7 +532,7 @@ function createLegacyInstallPlan(options = {}) {
 function createLegacyCompatInstallPlan(options = {}) {
   const sourceRoot = options.sourceRoot || getSourceRoot();
   const projectRoot = options.projectRoot || process.cwd();
-  const target = options.target || 'claude';
+  const target = options.target || 'cursor';
   const includeComponentIds = Array.isArray(options.includeComponentIds) ? [...options.includeComponentIds] : [];
   const excludeComponentIds = Array.isArray(options.excludeComponentIds) ? [...options.excludeComponentIds] : [];
 

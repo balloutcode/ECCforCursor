@@ -7,12 +7,7 @@ const { execFileSync } = require('child_process');
 const { resolveInstallPlan } = require('../install-manifests');
 const { getInstallTargetAdapter } = require('../install-targets/registry');
 const { resolveInvocationEnvironment } = require('../invocation-environment');
-const { disableUnselectedOpenCodeHooks } = require('./hook-consent');
-const { readHooksConfig } = require('../hooks-config');
 const { isPackageSourcePath, resolvePackageSourcePath } = require('./package-source');
-const {
-  materializeManagedHooks,
-} = require('./claude-settings');
 
 const EXCLUDED_GENERATED_SOURCE_SUFFIXES = ['/ecc-install-state.json', '/ecc/install-state.json'];
 const IGNORED_DIRECTORY_NAMES = new Set([
@@ -141,33 +136,7 @@ function readJsonObject(filePath, label) {
   return parsed;
 }
 
-function materializeClaudeSettingsOperation(sourceRoot, operation) {
-  const sourcePath = path.join(sourceRoot, operation.sourceRelativePath);
-  if (!fs.existsSync(sourcePath)) {
-    return [];
-  }
-
-  // Stable ids and descriptions live in hooks/hooks.metadata.json; readHooksConfig
-  // merges them back so managed settings entries keep their ids.
-  const hooksConfig = readHooksConfig(sourcePath, operation.sourceRelativePath);
-  const managedHooks = materializeManagedHooks(
-    hooksConfig,
-    path.dirname(operation.destinationPath)
-  );
-
-  return [{
-    ...operation,
-    sourcePath,
-    scaffoldOnly: false,
-    managedHooks,
-  }];
-}
-
 function materializeScaffoldOperation(sourceRoot, operation) {
-  if (operation.kind === 'update-claude-settings') {
-    return materializeClaudeSettingsOperation(sourceRoot, operation);
-  }
-
   if (operation.kind === 'merge-json') {
     return [
       {
@@ -266,7 +235,7 @@ function dedupeCopyFileOperations(operations) {
 function createManifestInstallPlan(options = {}) {
   const requestedSourceRoot = options.sourceRoot || getSourceRoot();
   const projectRoot = options.projectRoot || process.cwd();
-  const target = options.target || 'claude';
+  const target = options.target || 'cursor';
   const adapter = getInstallTargetAdapter(target);
   const preparedSource = adapter.prepareSource({
     sourceRoot: requestedSourceRoot,
@@ -308,17 +277,7 @@ function createManifestInstallPlan(options = {}) {
   });
   const materializedOperations = plan.operations.flatMap(operation => (
     materializeScaffoldOperation(sourceRoot, operation)
-  )).map(operation => {
-    // Persist this projection so install, doctor and repair compare the same
-    // native component names rather than restoring plugin-only references.
-    if (['claude', 'claude-project'].includes(target)
-      && operation.kind === 'copy-file'
-      && /\.(md|mdx|markdown)$/i.test(operation.destinationPath)
-      && !operation.contentTransform) {
-      return { ...operation, contentTransform: 'claude-manual-plugin-namespace' };
-    }
-    return operation;
-  });
+  ));
   const ruleLanguages = Array.isArray(options.ruleLanguages) ? [...options.ruleLanguages] : [];
   const operations = dedupeCopyFileOperations(
     options.legacyMode && target === 'antigravity'
@@ -357,7 +316,7 @@ function createManifestInstallPlan(options = {}) {
     source
   });
 
-  const installPlan = disableUnselectedOpenCodeHooks({
+  const installPlan = {
     mode: options.mode || 'manifest',
     sourceRoot,
     target,
@@ -384,7 +343,7 @@ function createManifestInstallPlan(options = {}) {
     excludedModuleIds: plan.excludedModuleIds,
     operations,
     statePreview
-  });
+  };
   if (typeof preparedSource.cleanup === 'function') {
     Object.defineProperty(installPlan, 'dispose', {
       configurable: false,

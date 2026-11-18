@@ -45,9 +45,9 @@ Use the smallest set of reads needed for the user's question.
 - `agent.yaml`: exported gitagent surface and command list
 - `commands/`: maintained slash-command compatibility shims
 - `skills/*/SKILL.md`: reusable workflows and domain playbooks
-- `agents/*.md`: delegated subagent role prompts
-- `rules/`: language and harness rules
-- `hooks/README.md`, `hooks/hooks.json`, `scripts/hooks/`: hook behavior and safety gates
+- `.cursor/agents/ecc-*.md`: delegated subagent role prompts. Unprefixed `agents/*.md` names are not the Cursor roster.
+- `rules/` and `.cursor/rules/*.mdc`: language and harness rules
+- `.cursor/hooks.json` and `docs/CURSOR.md`: hook events for this fork. `hooks/README.md` is not in this checkout.
 - `manifests/install-*.json`: selective install modules, components, profiles, and target support
 - `docs/`: harness guides, architecture notes, translated docs, release docs
 
@@ -107,36 +107,37 @@ Use managed install paths:
 
 ```bash
 node scripts/install-plan.js --list-profiles
-node scripts/install-plan.js --profile minimal --target claude --json
-node scripts/install-apply.js --profile minimal --target claude --dry-run
+node scripts/install-plan.js --profile full --target cursor --json
+node scripts/install-apply.js --profile full --target cursor --dry-run
 ```
+
+The human install commands are `.\install.ps1 --profile full --target cursor --enable-hooks` and `./install.sh --profile full --target cursor --enable-hooks`. This fork installs only the Cursor target. Updates come from https://github.com/balloutcode/ECCforCursor. It was adapted from ECC 2.2.3.
 
 For specific skill installs:
 
 ```bash
-node scripts/install-plan.js --skills <skill-id> --target claude --json
-node scripts/install-apply.js --skills <skill-id> --target claude --dry-run
+node scripts/install-plan.js --skills <skill-id> --target cursor --json
+node scripts/install-apply.js --skills <skill-id> --target cursor --dry-run
 ```
 
-Warn users not to stack plugin installs and full manual/profile installs unless they intentionally want duplicate surfaces.
+Do not stack the Cursor plugin `ecc-for-cursor` with a second full manual install unless the user wants duplicate surfaces.
 
 ### Project Onboarding
 
 Use `/project-init` when the user wants ECC configured for a target repo. The expected sequence is:
 
 1. detect the stack from project files
-2. resolve a dry-run install plan
-3. inspect existing `CLAUDE.md` and settings files
+2. resolve a dry-run install plan for `--target cursor`
+3. inspect existing `.cursor/` files and leave any `CLAUDE.md` untouched
 4. ask before applying changes
-5. keep generated guidance minimal and repo-specific
+5. keep generated guidance in `.cursor/` and do not create `.claude/`
 
 ### Troubleshooting
 
-Ask for the target harness and install path first, then inspect:
+This fork's install path is Cursor. Inspect:
 
-- plugin install metadata
-- `.claude/`, `.cursor/`, `.codex/`, `.gemini/`, `.opencode/`, `.codebuddy/`, `.joycode/`, or `.qwen/`
-- `hooks/hooks.json`
+- `.cursor/hooks.json`, `.cursor/rules/`, `.cursor/agents/`, `.cursor/skills/`
+- `~/.cursor/ecc` for session memory
 - install-state files
 - relevant command/skill files
 

@@ -16,9 +16,7 @@ const {
   normalizeServerEntry,
   buildInventory
 } = require('../../scripts/lib/mcp-inventory/canonical-mcp');
-const { readClaudeCodeMcp } = require('../../scripts/lib/mcp-inventory/readers/claude-code');
-const { readCodexMcp } = require('../../scripts/lib/mcp-inventory/readers/codex');
-const { readOpencodeMcp } = require('../../scripts/lib/mcp-inventory/readers/opencode');
+const { readCursorMcp } = require('../../scripts/lib/mcp-inventory/readers/cursor');
 const { collectMcpInventory } = require('../../scripts/lib/mcp-inventory/collect');
 const { formatHumanReport, parseArgs, usage, main } = require('../../scripts/mcp-inventory');
 
@@ -121,179 +119,73 @@ test('buildSignature collapses identical stdio configs and distinguishes http', 
   assert.notStrictEqual(a, buildSignature({ transport: 'http', url: 'https://x' }));
 });
 
-test('claude-code reader parses ~/.claude.json mcpServers + project .mcp.json', () => {
+test('cursor reader parses ~/.cursor/mcp.json, project .cursor/mcp.json, and mcp-configs', () => {
   const home = tmpHome();
-  fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({
+  const project = tmpHome();
+  fs.mkdirSync(path.join(home, '.cursor'), { recursive: true });
+  fs.mkdirSync(path.join(project, '.cursor'), { recursive: true });
+  fs.mkdirSync(path.join(project, 'mcp-configs'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.cursor', 'mcp.json'), JSON.stringify({
     mcpServers: { github: { ...GITHUB_STDIO, env: { GITHUB_PERSONAL_ACCESS_TOKEN: 'x' } } }
   }), 'utf8');
-  const projectFile = path.join(home, '.mcp.json');
-  fs.writeFileSync(projectFile, JSON.stringify({
+  fs.writeFileSync(path.join(project, '.cursor', 'mcp.json'), JSON.stringify({
     mcpServers: { localtool: { command: 'node', args: ['server.js'], type: 'stdio' } }
   }), 'utf8');
+  fs.writeFileSync(path.join(project, 'mcp-configs', 'mcp-servers.json'), JSON.stringify({
+    mcpServers: { catalogtool: { command: 'npx', args: ['-y', 'pkg'], type: 'stdio' } }
+  }), 'utf8');
 
-  const records = readClaudeCodeMcp({ homeDir: home, projectConfigPaths: [projectFile] });
-  const names = records.map(r => r.name).sort();
-  assert.deepStrictEqual(names, ['github', 'localtool']);
-  assert.strictEqual(records.find(r => r.name === 'github').source.scope, 'user');
-  assert.strictEqual(records.find(r => r.name === 'localtool').source.scope, 'project');
+  const records = readCursorMcp({
+    homeDir: home,
+    projectRoot: project,
+    catalogPaths: [path.join(project, 'mcp-configs', 'mcp-servers.json')]
+  });
+  const names = records.map(record => record.name).sort();
+  assert.deepStrictEqual(names, ['catalogtool', 'github', 'localtool']);
+  assert.strictEqual(records.find(record => record.name === 'github').source.harness, 'cursor');
+  assert.strictEqual(records.find(record => record.name === 'github').source.scope, 'user');
+  assert.strictEqual(records.find(record => record.name === 'localtool').source.scope, 'project');
+  assert.strictEqual(records.find(record => record.name === 'catalogtool').source.scope, 'catalog');
 });
 
-test('codex reader parses [mcp_servers.*] TOML tables', () => {
+test('collectMcpInventory merges Cursor configs, detects drift, and redacts secrets', () => {
   const home = tmpHome();
-  fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.codex', 'config.toml'), [
-    '[mcp_servers.github]',
-    'command = "npx"',
-    'args = ["-y", "@modelcontextprotocol/server-github"]',
-    '',
-    '[mcp_servers.github.env]',
-    'GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_codex_secret"',
-    '',
-    '[mcp_servers.remotehub]',
-    'url = "https://mcp.example.com/sse"'
-  ].join('\n'), 'utf8');
-
-  const records = readCodexMcp({ homeDir: home });
-  const github = records.find(r => r.name === 'github');
-  const remote = records.find(r => r.name === 'remotehub');
-  assert.ok(github, 'parses stdio server');
-  assert.strictEqual(github.command, 'npx');
-  assert.strictEqual(github.source.harness, 'codex');
-  assert.ok(remote && remote.url === 'https://mcp.example.com/sse', 'parses http/url server');
-});
-
-test('opencode reader splits command array and reads environment', () => {
-  const home = tmpHome();
-  fs.mkdirSync(path.join(home, '.config', 'opencode'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.config', 'opencode', 'opencode.json'), JSON.stringify({
-    mcp: {
-      github: {
-        type: 'local',
-        command: ['npx', '-y', '@modelcontextprotocol/server-github'],
-        environment: { GITHUB_TOKEN: 'github_pat_secret' },
-        enabled: true
-      },
-      disabledtool: { type: 'local', command: ['foo'], enabled: false }
+  const project = tmpHome();
+  fs.mkdirSync(path.join(home, '.cursor'), { recursive: true });
+  fs.mkdirSync(path.join(project, '.cursor'), { recursive: true });
+  fs.writeFileSync(path.join(home, '.cursor', 'mcp.json'), JSON.stringify({
+    mcpServers: { github: { ...GITHUB_STDIO, env: { GITHUB_PERSONAL_ACCESS_TOKEN: 'ghp_secret_cursor' } } }
+  }), 'utf8');
+  fs.writeFileSync(path.join(project, '.cursor', 'mcp.json'), JSON.stringify({
+    mcpServers: {
+      github: { command: 'docker', args: ['run', 'ghcr.io/github/mcp'], type: 'stdio' },
+      solo: { command: 'node', type: 'stdio' }
     }
   }), 'utf8');
 
-  const records = readOpencodeMcp({ homeDir: home });
-  const github = records.find(r => r.name === 'github');
-  assert.strictEqual(github.command, 'npx');
-  assert.deepStrictEqual(github.args, ['-y', '@modelcontextprotocol/server-github']);
-  assert.deepStrictEqual(Object.keys(github.env), ['GITHUB_TOKEN']);
-  assert.strictEqual(records.find(r => r.name === 'disabledtool').enabled, false);
-});
-
-test('opencode reader honors OPENCODE_CONFIG_DIR before XDG_CONFIG_HOME', () => {
-  const home = tmpHome();
-  const explicitRoot = path.join(home, 'explicit-opencode');
-  const xdgRoot = path.join(home, 'xdg');
-  for (const root of [explicitRoot, path.join(xdgRoot, 'opencode')]) {
-    fs.mkdirSync(root, { recursive: true });
-    fs.writeFileSync(path.join(root, 'opencode.json'), JSON.stringify({
-      mcp: {
-        [root === explicitRoot ? 'explicit' : 'xdg']: {
-          type: 'local',
-          command: ['node'],
-        },
-      },
-    }), 'utf8');
-  }
-
-  const explicit = readOpencodeMcp({
-    homeDir: home,
-    env: {
-      OPENCODE_CONFIG_DIR: explicitRoot,
-      XDG_CONFIG_HOME: xdgRoot,
-    },
-  });
-  assert.deepStrictEqual(explicit.map(record => record.name), ['explicit']);
-
-  const xdg = readOpencodeMcp({
-    homeDir: home,
-    env: { XDG_CONFIG_HOME: xdgRoot },
-  });
-  assert.deepStrictEqual(xdg.map(record => record.name), ['xdg']);
-});
-
-test('opencode reader isolates an explicit home from ambient config overrides', () => {
-  const home = tmpHome();
-  const configRoot = path.join(home, '.config', 'opencode');
-  const ambientRoot = path.join(home, 'runner-global-opencode');
-  fs.mkdirSync(configRoot, { recursive: true });
-  fs.mkdirSync(ambientRoot, { recursive: true });
-  fs.writeFileSync(path.join(configRoot, 'opencode.json'), JSON.stringify({
-    mcp: { isolated: { type: 'local', command: ['node'] } },
-  }), 'utf8');
-  fs.writeFileSync(path.join(ambientRoot, 'opencode.json'), JSON.stringify({
-    mcp: { leaked: { type: 'local', command: ['node'] } },
-  }), 'utf8');
-  const readerPath = path.join(
-    __dirname,
-    '..',
-    '..',
-    'scripts',
-    'lib',
-    'mcp-inventory',
-    'readers',
-    'opencode.js'
-  );
-  const child = spawnSync(process.execPath, ['-e', [
-    'const { readOpencodeMcp } = require(process.env.ECC_TEST_READER);',
-    'const names = readOpencodeMcp({ homeDir: process.env.ECC_TEST_HOME }).map(record => record.name);',
-    'process.stdout.write(JSON.stringify(names));',
-  ].join('\n')], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      ECC_TEST_READER: readerPath,
-      ECC_TEST_HOME: home,
-      OPENCODE_CONFIG_DIR: ambientRoot,
-    },
-  });
-
-  assert.strictEqual(child.status, 0, child.stderr);
-  assert.deepStrictEqual(JSON.parse(child.stdout), ['isolated']);
-});
-
-test('collectMcpInventory merges harnesses, detects fragmentation + drift, redacts secrets', () => {
-  const home = tmpHome();
-  // claude + opencode agree on github (consistent); codex github uses a
-  // different command (drift). github appears in all 3 => fragmentation x3.
-  fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({
-    mcpServers: { github: { ...GITHUB_STDIO, env: { GITHUB_PERSONAL_ACCESS_TOKEN: 'ghp_secret_claude' } } }
-  }), 'utf8');
-  fs.mkdirSync(path.join(home, '.config', 'opencode'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.config', 'opencode', 'opencode.json'), JSON.stringify({
-    mcp: { github: { type: 'local', command: ['npx', '-y', '@modelcontextprotocol/server-github'] } }
-  }), 'utf8');
-  fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.codex', 'config.toml'), [
-    '[mcp_servers.github]',
-    'command = "docker"',
-    'args = ["run", "ghcr.io/github/mcp"]',
-    '[mcp_servers.solo]',
-    'command = "node"'
-  ].join('\n'), 'utf8');
-
   const inventory = collectMcpInventory({
-    readerOptions: { 'claude-code': { homeDir: home }, codex: { homeDir: home }, opencode: { homeDir: home } }
+    readerOptions: {
+      cursor: {
+        homeDir: home,
+        projectRoot: project,
+        catalogPaths: []
+      }
+    }
   });
 
   assert.strictEqual(inventory.schemaVersion, MCP_SCHEMA_VERSION);
-  assert.ok(!JSON.stringify(inventory).includes('ghp_secret_claude'), 'no secret values in inventory');
+  assert.ok(!JSON.stringify(inventory).includes('ghp_secret_cursor'), 'no secret values in inventory');
 
-  const github = inventory.servers.find(s => s.name === 'github');
-  assert.strictEqual(github.harnessCount, 3);
-  assert.strictEqual(github.consistent, false, 'codex docker command should flag drift');
+  const github = inventory.servers.find(server => server.name === 'github');
+  assert.strictEqual(github.harnessCount, 2);
+  assert.strictEqual(github.consistent, false, 'different Cursor commands should flag drift');
 
-  const frag = inventory.fragmentation.find(f => f.name === 'github');
-  assert.strictEqual(frag.harnessCount, 3);
-  assert.deepStrictEqual(frag.harnesses.sort(), ['claude-code', 'codex', 'opencode']);
+  const frag = inventory.fragmentation.find(item => item.name === 'github');
+  assert.strictEqual(frag.harnessCount, 2);
+  assert.deepStrictEqual(frag.harnesses, ['cursor', 'cursor']);
 
   assert.strictEqual(inventory.aggregates.serverCount, 2);
-  assert.strictEqual(inventory.aggregates.harnessCount, 3);
+  assert.strictEqual(inventory.aggregates.harnessCount, 1);
   assert.strictEqual(inventory.aggregates.duplicateServerCount, 1);
   assert.strictEqual(inventory.aggregates.inconsistentServerCount, 1);
 });
@@ -324,32 +216,32 @@ function captureStdout(fn) {
   return lines.join('\n');
 }
 
-test('readers return [] for missing files, malformed JSON, and missing blocks', () => {
+test('cursor reader returns [] for missing files, malformed JSON, and missing blocks', () => {
   const home = tmpHome();
-  assert.deepStrictEqual(readClaudeCodeMcp({ homeDir: home }), []);
-  assert.deepStrictEqual(readCodexMcp({ homeDir: home }), []);
-  assert.deepStrictEqual(readOpencodeMcp({ homeDir: home }), []);
+  const project = tmpHome();
+  assert.deepStrictEqual(readCursorMcp({
+    homeDir: home,
+    projectRoot: project,
+    catalogPaths: []
+  }), []);
 
-  fs.writeFileSync(path.join(home, '.claude.json'), '{not valid json', 'utf8');
-  assert.deepStrictEqual(readClaudeCodeMcp({ homeDir: home }), []);
+  fs.mkdirSync(path.join(project, '.cursor'), { recursive: true });
+  const projectConfig = path.join(project, '.cursor', 'mcp.json');
+  fs.writeFileSync(projectConfig, '{not valid json', 'utf8');
+  assert.deepStrictEqual(readCursorMcp({
+    homeDir: home,
+    projectRoot: project,
+    projectConfigPath: projectConfig,
+    catalogPaths: []
+  }), []);
 
-  fs.writeFileSync(path.join(home, '.claude.json'), JSON.stringify({ other: true }), 'utf8');
-  assert.deepStrictEqual(readClaudeCodeMcp({ homeDir: home }), []);
-
-  fs.mkdirSync(path.join(home, '.config', 'opencode'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.config', 'opencode', 'opencode.json'), 'nope', 'utf8');
-  assert.deepStrictEqual(readOpencodeMcp({ homeDir: home }), []);
-
-  fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.codex', 'config.toml'), 'this = = broken', 'utf8');
-  assert.deepStrictEqual(readCodexMcp({ homeDir: home }), []);
-});
-
-test('codex reader returns [] when no TOML parser is available', () => {
-  const home = tmpHome();
-  fs.mkdirSync(path.join(home, '.codex'), { recursive: true });
-  fs.writeFileSync(path.join(home, '.codex', 'config.toml'), '[mcp_servers.x]\ncommand = "node"\n', 'utf8');
-  assert.deepStrictEqual(readCodexMcp({ homeDir: home, parseTomlImpl: () => { throw new Error('no parser'); } }), []);
+  fs.writeFileSync(projectConfig, JSON.stringify({ other: true }), 'utf8');
+  assert.deepStrictEqual(readCursorMcp({
+    homeDir: home,
+    projectRoot: project,
+    projectConfigPath: projectConfig,
+    catalogPaths: []
+  }), []);
 });
 
 test('collect skips non-function readers and swallows reader errors', () => {

@@ -139,7 +139,7 @@ command -v ecc-memory-mcp
 
 ```bash
 # 添加市场
-/plugin marketplace add https://github.com/affaan-m/ECC
+# ECCforCursor: install the Cursor plugin ecc-for-cursor from https://github.com/balloutcode/ECCforCursor
 
 # 安装插件
 /plugin install ecc@ecc
@@ -157,7 +157,7 @@ command -v ecc-memory-mcp
 
 ```bash
 # 首先克隆仓库
-git clone https://github.com/affaan-m/ECC.git
+git clone https://github.com/balloutcode/ECCforCursor.git
 cd ECC
 
 # 安装依赖（选择你常用的包管理器）
@@ -587,7 +587,7 @@ Claude Code v2.1+ 会**按照约定自动加载**已安装插件中的 `hooks/ho
 
 ```bash
 # 将此仓库添加为市场
-/plugin marketplace add https://github.com/affaan-m/ECC
+# ECCforCursor: install the Cursor plugin ecc-for-cursor from https://github.com/balloutcode/ECCforCursor
 
 # 安装插件
 /plugin install ecc@ecc
@@ -617,7 +617,7 @@ Claude Code v2.1+ 会**按照约定自动加载**已安装插件中的 `hooks/ho
 >
 > ```bash
 > # 首先克隆仓库
-> git clone https://github.com/affaan-m/ECC.git
+> git clone https://github.com/balloutcode/ECCforCursor.git
 >
 > # 方案 A：用户级规则（对所有项目生效）
 > mkdir -p ~/.claude/rules
@@ -641,7 +641,7 @@ Claude Code v2.1+ 会**按照约定自动加载**已安装插件中的 `hooks/ho
 
 ```bash
 # 克隆仓库
-git clone https://github.com/affaan-m/ECC.git
+git clone https://github.com/balloutcode/ECCforCursor.git
 
 # 将智能体文件复制到 Claude 配置目录
 cp ECC/agents/*.md ~/.claude/agents/

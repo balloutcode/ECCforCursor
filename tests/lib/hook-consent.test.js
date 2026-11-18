@@ -91,7 +91,7 @@ function runTests() {
 
   if (test('matches hook runtime operations by module id and source path', () => {
     assert.strictEqual(isHookRuntimeOperation({ moduleId: 'hooks-runtime' }), true);
-    assert.strictEqual(isHookRuntimeOperation({ kind: 'update-claude-settings' }), true);
+    assert.strictEqual(isHookRuntimeOperation({ kind: 'update-claude-settings' }), false);
     assert.strictEqual(isHookRuntimeOperation({ sourceRelativePath: 'hooks/hooks.json' }), true);
     assert.strictEqual(isHookRuntimeOperation({ sourceRelativePath: '.cursor/hooks.json' }), true);
     assert.strictEqual(isHookRuntimeOperation({ destinationPath: '/root/.claude/hooks/hooks.json' }), true);
@@ -202,7 +202,7 @@ function runTests() {
     assert.strictEqual(getRecordedHookConsent({ ...state, request: { hookConsent: 'declined' } }), 'declined');
     assert.strictEqual(getRecordedHookConsent({ ...state, request: { hookConsent: 'enabled' } }), 'enabled');
     assert.strictEqual(getRecordedHookConsent({ ...state, resolution: { selectedModules: ['hooks-runtime'] } }), 'enabled');
-    assert.strictEqual(getRecordedHookConsent({ operations: [{ kind: 'update-claude-settings' }] }), 'enabled');
+    assert.strictEqual(getRecordedHookConsent({ operations: [{ kind: 'update-claude-settings' }] }), null);
   })) passed++; else failed++;
 
   if (test('source classification covers nested JavaScript but refuses package metadata deactivation', () => {

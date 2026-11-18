@@ -5,10 +5,6 @@ const path = require('path');
 const { uninstallInstalledStates } = require('./lib/install-lifecycle');
 const { SUPPORTED_INSTALL_TARGETS } = require('./lib/install-manifests');
 const { exitFeedbackLines } = require('./lib/feedback-links');
-const {
-  legacyCodexSyncStateExists,
-  uninstallLegacyCodexSync,
-} = require('./lib/codex-legacy-sync');
 
 function showHelp(exitCode = 0) {
   console.log(`
@@ -146,59 +142,32 @@ async function main() {
 
     const dryRun = isDryRun(options);
 
-    if (options.legacyCodexSync && options.targets.length > 0) {
-      throw new Error('--legacy-codex-sync cannot be combined with --target');
+    if (options.legacyCodexSync) {
+      throw new Error('Legacy Codex sync cleanup is not part of the Cursor install.');
     }
 
-    let result;
-    let mode = 'install-state';
+    const result = uninstallInstalledStates({
+      homeDir: process.env.HOME || os.homedir(),
+      env: process.env,
+      projectRoot: process.cwd(),
+      targets: options.targets,
+      dryRun,
+    });
 
-    if (options.legacyCodexSync) {
-      result = uninstallLegacyCodexSync({
-        codexHome: codexHomePath(),
-        dryRun,
-      });
-      mode = 'legacy-codex-sync';
-    } else {
-      result = uninstallInstalledStates({
+    if (!dryRun) {
+      const { reconcileCanonicalInstallStates } = require('./lib/install-state-store-sync');
+      result.installStateProjection = await reconcileCanonicalInstallStates({
         homeDir: process.env.HOME || os.homedir(),
         env: process.env,
         projectRoot: process.cwd(),
         targets: options.targets,
-        dryRun,
       });
-
-      if (
-        result.results.length === 0
-        && includesCodexTarget(options.targets)
-        && legacyCodexSyncStateDetected(codexHomePath())
-      ) {
-        result = uninstallLegacyCodexSync({
-          codexHome: codexHomePath(),
-          dryRun,
-        });
-        mode = 'legacy-codex-sync';
-      }
-
-      if (mode === 'install-state' && !dryRun) {
-        const { reconcileCanonicalInstallStates } = require('./lib/install-state-store-sync');
-        result.installStateProjection = await reconcileCanonicalInstallStates({
-          homeDir: process.env.HOME || os.homedir(),
-          env: process.env,
-          projectRoot: process.cwd(),
-          targets: options.targets,
-        });
-      }
     }
 
-    const hasErrors = mode === 'legacy-codex-sync'
-      ? result.status === 'partial'
-      : result.summary.errorCount > 0 || result.summary.partialCount > 0;
+    const hasErrors = result.summary.errorCount > 0 || result.summary.partialCount > 0;
 
     if (options.json) {
       console.log(JSON.stringify(result, null, 2));
-    } else if (mode === 'legacy-codex-sync') {
-      printLegacy(result, dryRun);
     } else {
       printHuman(result);
     }

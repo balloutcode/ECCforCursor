@@ -26,12 +26,6 @@ const {
   createInstallState,
   writeInstallState,
 } = require('../../scripts/lib/install-state');
-const {
-  beginLegacySyncState,
-  recordLegacySyncPath,
-  finalizeLegacySyncState,
-} = require('../../scripts/lib/codex-legacy-sync');
-
 function createTempDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }

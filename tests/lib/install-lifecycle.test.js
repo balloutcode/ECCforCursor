@@ -24,10 +24,6 @@ const {
   readInstallState,
   writeInstallState,
 } = require('../../scripts/lib/install-state');
-const {
-  assertClaudeSettingsPath,
-  materializeManagedHooks,
-} = require('../../scripts/lib/install/claude-settings');
 const { readHooksConfig } = require('../../scripts/lib/hooks-config');
 const { getDisabledOpenCodePluginContent } = require('../../scripts/lib/install/hook-consent');
 
@@ -359,12 +355,14 @@ function runTests() {
   if (test('normalizes default targets and dedupes adapter aliases', () => {
     const defaultTargets = normalizeTargets();
 
-    assert.ok(defaultTargets.includes('claude'));
-    assert.ok(defaultTargets.includes('cursor'));
-    assert.ok(defaultTargets.includes('codex'));
+    assert.deepStrictEqual(defaultTargets, ['cursor']);
+    assert.throws(
+      () => normalizeTargets(['claude']),
+      /Unknown install target adapter: claude/
+    );
     assert.deepStrictEqual(
-      normalizeTargets(['cursor-project', 'cursor', 'claude-home', 'claude']),
-      ['cursor', 'claude']
+      normalizeTargets(['cursor-project', 'cursor']),
+      ['cursor']
     );
   })) passed++; else failed++;
 

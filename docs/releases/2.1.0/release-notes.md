@@ -18,13 +18,9 @@ ECC 2.1 turns plan review into a visual loop and opens the harness to self-hoste
 
 ## Kimi harness: Moonshot AI partnership
 
-ECC now installs directly into [Kimi Code](https://moonshotai.github.io/kimi-cli/) (`--target kimi`). Kimi Code discovers the installed `.kimi/AGENTS.md` instructions and `.kimi/skills/` workflows natively:
+Upstream ECC 2.1 documented a Kimi Code install. This fork does not ship that target and does not install Kimi. Cursor install is in the README.
 
-```bash
-bash ./install.sh --target kimi --profile minimal
-npx ecc-universal doctor --target kimi
-kimi
-```
+Upstream ECC 2.1 added a Kimi Code target. This fork does not install Kimi. Use the Cursor commands in the README: `.\install.ps1 --profile full --target cursor --enable-hooks` or `./install.sh --profile full --target cursor --enable-hooks`.
 
 ## Self-host on Itô GPUs
 
@@ -54,7 +50,9 @@ The catalog now stands at **67 agents, 281 skills, and 94 command shims** (2.0.0
 ## Install or upgrade
 
 ```text
-/plugin marketplace add https://github.com/affaan-m/ECC
+# This fork updates from https://github.com/balloutcode/ECCforCursor
+# .\install.ps1 --profile full --target cursor --enable-hooks
+# ./install.sh --profile full --target cursor --enable-hooks
 /plugin install ecc@ecc
 ```
 

@@ -34,7 +34,9 @@ The ECC Discord is live: <https://discord.gg/36yGMHGFbR>
 ## Install or upgrade
 
 ```
-/plugin marketplace add https://github.com/affaan-m/ECC
+# This fork updates from https://github.com/balloutcode/ECCforCursor
+# .\install.ps1 --profile full --target cursor --enable-hooks
+# ./install.sh --profile full --target cursor --enable-hooks
 /plugin install ecc
 ```
 

@@ -459,5 +459,6 @@ If you haven't read the previous guides, start here:
 > [The Longform Guide to ECC](https://x.com/affaanmustafa/status/2014040193557471352)
 
 go do that and also save these repos:
-- [github.com/affaan-m/ECC](https://github.com/affaan-m/ECC)
+- [github.com/balloutcode/ECCforCursor](https://github.com/balloutcode/ECCforCursor) (this fork, adapted from ECC 2.2.3)
+- [github.com/affaan-m/ECC](https://github.com/affaan-m/ECC) (upstream ECC, not the update source for this fork)
 - [github.com/affaan-m/agentshield](https://github.com/affaan-m/agentshield)

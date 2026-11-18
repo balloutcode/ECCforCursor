@@ -34,70 +34,21 @@ rules/
 
 ## Installation
 
-### Option 1: Install Script (Recommended)
+### Cursor install
 
-```bash
-# Install common + one or more language-specific rule sets
-./install.sh typescript
-./install.sh angular
-./install.sh vue
-./install.sh nuxt
-./install.sh python
-./install.sh golang
-./install.sh web
-./install.sh react-native
-./install.sh swift
-./install.sh php
-./install.sh ruby
-./install.sh arkts
+Cursor loads rules from `.cursor/rules/*.mdc`. This fork was adapted from ECC 2.2.3. Updates come from https://github.com/balloutcode/ECCforCursor.
 
-# Install multiple languages at once
-./install.sh typescript python
+```powershell
+.\install.ps1 --profile full --target cursor --enable-hooks
 ```
 
-### Option 2: Manual Installation
-
-> **Important:** Copy entire directories — do NOT flatten with `/*`.
-> Common and language-specific directories contain files with the same names.
-> Flattening them into one directory causes language-specific files to overwrite
-> common rules, and breaks the relative `../common/` references used by
-> language-specific files.
->
-> Use the ECC-owned namespace below for user-level Claude installs. Flat
-> package-level destinations can collide with non-ECC rule packs and do not
-> match the main README guidance.
-
 ```bash
-# Create the ECC rule namespace once.
-mkdir -p ~/.claude/rules/ecc
-
-# Install common rules (required for all projects)
-cp -r rules/common ~/.claude/rules/ecc/
-
-# Install language-specific rules based on your project's tech stack
-cp -r rules/typescript ~/.claude/rules/ecc/
-cp -r rules/angular ~/.claude/rules/ecc/
-cp -r rules/vue ~/.claude/rules/ecc/
-cp -r rules/nuxt ~/.claude/rules/ecc/
-cp -r rules/python ~/.claude/rules/ecc/
-cp -r rules/golang ~/.claude/rules/ecc/
-cp -r rules/web ~/.claude/rules/ecc/
-cp -r rules/react-native ~/.claude/rules/ecc/
-cp -r rules/swift ~/.claude/rules/ecc/
-cp -r rules/php ~/.claude/rules/ecc/
-cp -r rules/ruby ~/.claude/rules/ecc/
-cp -r rules/arkts ~/.claude/rules/ecc/
-
-# Attention ! ! ! Configure according to your actual project requirements; the configuration here is for reference only.
+./install.sh --profile full --target cursor --enable-hooks
 ```
 
-For project-local rules, use the same namespace under the project root:
+Do not copy rules into `~/.claude/` or `.claude/`.
 
-```bash
-mkdir -p .claude/rules/ecc
-cp -r rules/common .claude/rules/ecc/
-cp -r rules/typescript .claude/rules/ecc/
-```
+Copy whole language directories when you assemble a ruleset by hand (`rules/common`, `rules/golang`, and so on). Do not flatten them with `/*`: files share names, and language files reference `../common/`. The Cursor install already places the selected rules in `.cursor/rules/`.
 
 ## Rules vs Skills
 

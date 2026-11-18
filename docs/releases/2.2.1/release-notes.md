@@ -111,6 +111,8 @@ npx ecc-universal setup
 The native Claude marketplace path remains supported:
 
 ```text
-/plugin marketplace add https://github.com/affaan-m/ECC
+# This fork updates from https://github.com/balloutcode/ECCforCursor
+# .\install.ps1 --profile full --target cursor --enable-hooks
+# ./install.sh --profile full --target cursor --enable-hooks
 /plugin install ecc@ecc
 ```

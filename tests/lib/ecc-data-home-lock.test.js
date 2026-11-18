@@ -4,13 +4,30 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const { acquireSettingsLock } = require('../../scripts/lib/install/claude-settings-lock');
+const { acquireDataHomeLock } = require('../../scripts/lib/ecc-data-home-lock');
 
-async function owner(root, settingsPath) {
+function restoreEnv(saved) {
+  for (const [key, value] of Object.entries(saved)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+}
+
+function snapshotEnv() {
+  return {
+    HOME: process.env.HOME,
+    USERPROFILE: process.env.USERPROFILE,
+    ECC_AGENT_DATA_HOME: process.env.ECC_AGENT_DATA_HOME,
+  };
+}
+
+async function owner(root, targetPath, dataHome) {
   const child = spawn(process.execPath, [
-    path.join(__dirname, 'helpers', 'settings-lock-worker.js'), root, settingsPath,
-  ], { env: { ...process.env, HOME: root, USERPROFILE: root, ECC_AGENT_DATA_HOME: path.join(root, '.claude') },
-    stdio: ['ignore', 'ignore', 'pipe'] });
+    path.join(__dirname, 'helpers', 'ecc-data-home-lock-worker.js'), root, targetPath,
+  ], {
+    env: { ...process.env, HOME: root, USERPROFILE: root, ECC_AGENT_DATA_HOME: dataHome },
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
   let stderr = '';
   child.stderr.on('data', data => { stderr += data; });
   child.done = new Promise((resolve, reject) => {
@@ -31,27 +48,33 @@ async function owner(root, settingsPath) {
     throw error;
   }
 }
+
 async function withOwner(callback) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-settings-wait-'));
-  const settingsPath = path.join(root, '.claude', 'session-aliases.json');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-data-home-lock-'));
+  const dataHome = path.join(root, '.cursor', 'ecc');
+  const aliasesPath = path.join(dataHome, 'session-aliases.json');
+  const saved = snapshotEnv();
+  Object.assign(process.env, { HOME: root, USERPROFILE: root, ECC_AGENT_DATA_HOME: dataHome });
   let child;
   try {
-    child = await owner(root, settingsPath);
-    await callback(root, settingsPath, child);
+    child = await owner(root, aliasesPath, dataHome);
+    await callback(root, aliasesPath, child);
   } finally {
     if (child) {
       if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
       await child.done;
     }
+    restoreEnv(saved);
     fs.rmSync(root, { recursive: true, force: true });
   }
 }
+
 const cases = [
   ['default contention is fail-fast; optional timeout is bounded and leaves owner intact', () => withOwner((_root, file) => {
     const before = fs.readFileSync(file + '.ecc.lock', 'utf8');
-    assert.throws(() => acquireSettingsLock(file), /Another ECC process/);
+    assert.throws(() => acquireDataHomeLock(file), /Another ECC process/);
     const start = performance.now();
-    assert.throws(() => acquireSettingsLock(file, { timeoutMs: 50 }), /Another ECC process/);
+    assert.throws(() => acquireDataHomeLock(file, { timeoutMs: 50 }), /Another ECC process/);
     assert.ok(performance.now() - start >= 40, 'Waits for the configured deadline');
     assert.ok(performance.now() - start < 5000, 'Does not wait indefinitely');
     assert.strictEqual(fs.readFileSync(file + '.ecc.lock', 'utf8'), before);
@@ -71,7 +94,7 @@ const cases = [
       }
     };
     let release;
-    try { release = acquireSettingsLock(file, { timeoutMs: 2000 }); }
+    try { release = acquireDataHomeLock(file, { timeoutMs: 2000 }); }
     finally { fs.linkSync = originalLink; }
     assert.ok(contended);
     release();
@@ -79,21 +102,13 @@ const cases = [
     assert.strictEqual(result.code, 0, result.stderr);
     assert.ok(!fs.existsSync(file + '.ecc.lock'));
   })],
-  ['a killed owner is recovered by the next alias transaction', () => withOwner(async (root, file, child) => {
+  ['a killed owner is recovered by the next alias transaction', () => withOwner(async (_root, file, child) => {
     child.kill('SIGKILL');
     await child.done;
-    const saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, ECC_AGENT_DATA_HOME: process.env.ECC_AGENT_DATA_HOME };
-    Object.assign(process.env, { HOME: root, USERPROFILE: root, ECC_AGENT_DATA_HOME: path.dirname(file) });
-    try {
-      const aliases = require('../../scripts/lib/session-aliases');
-      assert.strictEqual(aliases.setAlias('recovered', '/session').success, true);
-      assert.ok(aliases.loadAliases().aliases.recovered);
-      assert.deepStrictEqual(fs.readdirSync(path.dirname(file)), ['session-aliases.json']);
-    } finally {
-      for (const [key, value] of Object.entries(saved)) {
-        if (value === undefined) delete process.env[key]; else process.env[key] = value;
-      }
-    }
+    const aliases = require('../../scripts/lib/session-aliases');
+    assert.strictEqual(aliases.setAlias('recovered', '/session').success, true);
+    assert.ok(aliases.loadAliases().aliases.recovered);
+    assert.deepStrictEqual(fs.readdirSync(path.dirname(file)), ['session-aliases.json']);
   })],
   ['non-contention errors propagate without retry', () => withOwner((_root, file) => {
     const originalLink = fs.linkSync;
@@ -101,14 +116,16 @@ const cases = [
     let attempts = 0;
     fs.linkSync = () => { attempts++; throw expected; };
     try {
-      assert.throws(() => acquireSettingsLock(file, { timeoutMs: 2000 }), error => error === expected);
+      assert.throws(() => acquireDataHomeLock(file, { timeoutMs: 2000 }), error => error === expected);
       assert.strictEqual(attempts, 1);
     } finally { fs.linkSync = originalLink; }
   })],
   ['recovery tolerates a lock disappearing between inspection and quarantine', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-lock-disappeared-'));
-    const file = path.join(root, 'settings.json');
+    const file = path.join(root, 'session-aliases.json');
     const lock = file + '.ecc.lock';
+    const saved = snapshotEnv();
+    Object.assign(process.env, { ECC_AGENT_DATA_HOME: root });
     fs.writeFileSync(lock, '{}');
     fs.utimesSync(lock, new Date(0), new Date(0));
     const originalRename = fs.renameSync;
@@ -124,18 +141,34 @@ const cases = [
       // Quarantine IO can consume a short deadline on native Windows runners.
       // Leave room for the next acquisition attempt after the injected ENOENT;
       // the separate contention case verifies the short bounded timeout.
-      const release = acquireSettingsLock(file, { timeoutMs: 2000 });
+      const release = acquireDataHomeLock(file, { timeoutMs: 2000 });
       assert.ok(raced);
       release();
       assert.deepStrictEqual(fs.readdirSync(root), []);
     } finally {
       fs.renameSync = originalRename;
+      restoreEnv(saved);
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }],
+  ['paths outside the ECC agent data home are refused before creating them', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-lock-outside-'));
+    const dataHome = path.join(root, '.cursor', 'ecc');
+    const outside = path.join(root, 'outside', 'session-aliases.json');
+    const saved = snapshotEnv();
+    Object.assign(process.env, { ECC_AGENT_DATA_HOME: dataHome });
+    try {
+      assert.throws(() => acquireDataHomeLock(outside), /outside the ECC agent data home/);
+      assert.strictEqual(fs.existsSync(path.dirname(outside)), false);
+      assert.strictEqual(fs.existsSync(dataHome), false);
+    } finally {
+      restoreEnv(saved);
       fs.rmSync(root, { recursive: true, force: true });
     }
   }],
   ['invalid timeout is rejected before touching disk', () => {
     for (const timeoutMs of [-1, NaN, Infinity, '1']) {
-      assert.throws(() => acquireSettingsLock('unused', { timeoutMs }), /timeoutMs/);
+      assert.throws(() => acquireDataHomeLock('unused', { timeoutMs }), /timeoutMs/);
     }
   }],
 ];

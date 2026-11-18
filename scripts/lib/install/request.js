@@ -3,7 +3,7 @@
 const { validateInstallModuleIds, LOCALE_ALIAS_TO_COMPONENT_ID, listSupportedLocales } = require('../install-manifests');
 const { resolveHookConsentFlags } = require('./hook-consent');
 
-const LEGACY_INSTALL_TARGETS = ['claude', 'claude-project', 'cursor', 'antigravity'];
+const LEGACY_INSTALL_TARGETS = ['cursor'];
 const LOCALE_COMPONENT_IDS = new Set(Object.values(LOCALE_ALIAS_TO_COMPONENT_ID));
 
 function dedupeStrings(values) {
@@ -121,8 +121,8 @@ function normalizeInstallRequest(options = {}) {
     ? options.config
     : null;
   const profileId = options.profileId || config?.profileId || null;
-  const target = options.target || config?.target || 'claude';
-  const supportsLocale = target === 'claude' || target === 'claude-project';
+  const target = options.target || config?.target || 'cursor';
+  const supportsLocale = false;
   const moduleIds = validateInstallModuleIds(
     dedupeStrings([...(config?.moduleIds || []), ...(options.moduleIds || [])])
   );
@@ -134,7 +134,7 @@ function normalizeInstallRequest(options = {}) {
     );
   }
   if (locale && !supportsLocale) {
-    throw new Error('--locale can only be used with --target claude or --target claude-project');
+    throw new Error('--locale is not available for the Cursor install target');
   }
   const requestedIncludeComponentIds = dedupeStrings([
     ...(config?.includeComponentIds || []),
@@ -159,8 +159,8 @@ function normalizeInstallRequest(options = {}) {
   const trust = options.trust === true;
   const consentMcp = dedupeStrings(options.consentMcp || []);
   const sourceSha = options.sourceSha || null;
-  if (sourceSha && (target !== 'grok' || !/^[0-9a-f]{40}$/.test(sourceSha))) {
-    throw new Error('--source-sha requires --target grok and a 40-character lowercase commit SHA');
+  if (sourceSha && !/^[0-9a-f]{40}$/.test(sourceSha)) {
+    throw new Error('--source-sha must be a 40-character lowercase commit SHA');
   }
   if (hookConsent === 'declined' && moduleIds.includes('hooks-runtime')) {
     throw new Error('--no-hooks cannot be combined with an explicit hooks-runtime module selection');

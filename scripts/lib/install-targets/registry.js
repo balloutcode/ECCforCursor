@@ -1,44 +1,8 @@
-const adalProject = require('./adal-project');
-const antigravityHome = require('./antigravity-home');
-const antigravityProject = require('./antigravity-project');
-const claudeHome = require('./claude-home');
-const claudeProject = require('./claude-project');
-const codebuddyProject = require('./codebuddy-project');
-const codexHome = require('./codex-home');
-const copilotProject = require('./copilot-project');
 const cursorProject = require('./cursor-project');
-const geminiProject = require('./gemini-project');
-const grokHome = require('./grok-home');
-const hermesHome = require('./hermes-home');
-const joycodeProject = require('./joycode-project');
-const kimiProject = require('./kimi-project');
-const mistralVibeProject = require('./mistral-vibe-project');
-const openclawHome = require('./openclaw-home');
-const opencodeHome = require('./opencode-home');
-const qwenHome = require('./qwen-home');
-const zedProject = require('./zed-project');
 const { resolveInvocationEnvironment } = require('../invocation-environment');
 
 const ADAPTERS = Object.freeze([
-  claudeHome,
-  claudeProject,
   cursorProject,
-  antigravityHome,
-  antigravityProject,
-  codexHome,
-  copilotProject,
-  geminiProject,
-  grokHome,
-  hermesHome,
-  opencodeHome,
-  openclawHome,
-  codebuddyProject,
-  joycodeProject,
-  kimiProject,
-  mistralVibeProject,
-  qwenHome,
-  zedProject,
-  adalProject,
 ]);
 
 function listInstallTargetAdapters() {

@@ -3,9 +3,19 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { resolveAgentDataHome } = require('./agent-data-home');
+const { isWithinRoot } = require('./path-safety');
 
 const INVALID_LOCK_STALE_MS = 5 * 60 * 1000;
 const acquiredLockIdentities = new WeakMap();
+
+/**
+ * Exclusive lock for one file inside the ECC agent data home.
+ *
+ * Cursor sessionStart sets ECC_AGENT_DATA_HOME (default ~/.cursor/ecc).
+ * Session aliases live at session-aliases.json under that root. This module
+ * does not lock Claude settings.json.
+ */
 
 function sameFileIdentity(left, right) {
   if (left.ino !== right.ino) {
@@ -20,7 +30,19 @@ function sameFileIdentity(left, right) {
   return left.dev === right.dev;
 }
 
-function createSettingsLock(lockPath, label = 'Claude settings') {
+function assertDataHomeTarget(targetPath) {
+  if (typeof targetPath !== 'string' || targetPath.trim() === '') {
+    throw new TypeError('ECC agent data lock target must be a non-empty path.');
+  }
+  const dataHome = resolveAgentDataHome();
+  if (!isWithinRoot(targetPath, dataHome)) {
+    throw new Error(
+      `Refusing to lock a path outside the ECC agent data home (${dataHome}): ${targetPath}`
+    );
+  }
+}
+
+function createDataHomeLock(lockPath, label = 'ECC agent data') {
   const tempPath = `${lockPath}.create-${process.pid}-${crypto.randomBytes(8).toString('hex')}`;
   let descriptor;
   let ownedStats;
@@ -62,13 +84,13 @@ function createSettingsLock(lockPath, label = 'Claude settings') {
   return release;
 }
 
-function getSettingsLockIdentity(release) {
+function getDataHomeLockIdentity(release) {
   const identity = acquiredLockIdentities.get(release);
-  if (!identity) throw new Error('No acquired settings lock identity for this release function.');
+  if (!identity) throw new Error('No acquired ECC agent data lock identity for this release function.');
   return identity;
 }
 
-function inspectSettingsLock(lockPath) {
+function inspectDataHomeLock(lockPath) {
   const descriptor = fs.openSync(lockPath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
   try {
     const stats = fs.fstatSync(descriptor, { bigint: true });
@@ -102,7 +124,7 @@ function processIsAlive(pid) {
   }
 }
 
-function recoverSettingsLock(lockPath, label = 'Claude settings') {
+function recoverDataHomeLock(lockPath, label = 'ECC agent data') {
   const recoveryPath = `${lockPath}.recover`;
   try {
     fs.mkdirSync(recoveryPath, { mode: 0o700 });
@@ -115,9 +137,9 @@ function recoverSettingsLock(lockPath, label = 'Claude settings') {
   try {
     let inspected;
     try {
-      inspected = inspectSettingsLock(lockPath);
+      inspected = inspectDataHomeLock(lockPath);
     } catch (error) {
-      if (error && error.code === 'ENOENT') return createSettingsLock(lockPath, label);
+      if (error && error.code === 'ENOENT') return createDataHomeLock(lockPath, label);
       throw error;
     }
     const validOwner = Number.isSafeInteger(inspected.metadata && inspected.metadata.pid)
@@ -134,7 +156,7 @@ function recoverSettingsLock(lockPath, label = 'Claude settings') {
       return null;
     }
     fs.rmSync(quarantinePath, { force: true });
-    return createSettingsLock(lockPath, label);
+    return createDataHomeLock(lockPath, label);
   } finally {
     fs.rmSync(recoveryPath, { recursive: true, force: true });
     fs.rmSync(quarantinePath, { force: true });
@@ -142,30 +164,31 @@ function recoverSettingsLock(lockPath, label = 'Claude settings') {
 }
 
 /**
- * Acquire exclusive settings access, optionally waiting for another writer.
- * A recovery guard (`.ecc.lock.recover`) is never removed by a contender: if its
- * owner crashes during recovery, inspect and remove the orphaned guard manually
- * only after confirming no ECC process is active.
- * @param {string} settingsPath - Settings file protected by the lock
+ * Acquire exclusive access to a file inside the ECC agent data home.
+ * A recovery guard (`<target>.ecc.lock.recover`) is never removed by a
+ * contender: if its owner crashes during recovery, inspect and remove the
+ * orphaned guard manually only after confirming no ECC process is active.
+ * @param {string} targetPath - File protected by the lock
  * @param {object} options - Diagnostic label and bounded wait duration
  * @returns {Function} Release callback for the acquired lock
  */
-function acquireSettingsLock(settingsPath, { label = 'Claude settings', timeoutMs = 0 } = {}) {
+function acquireDataHomeLock(targetPath, { label = 'ECC agent data', timeoutMs = 0 } = {}) {
   if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
     throw new TypeError('Lock timeoutMs must be a finite non-negative number.');
   }
-  const lockPath = `${settingsPath}.ecc.lock`;
+  assertDataHomeTarget(targetPath);
+  const lockPath = `${targetPath}.ecc.lock`;
   const deadline = performance.now() + timeoutMs;
   const sleeper = new Int32Array(new SharedArrayBuffer(4));
-  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   while (true) {
     try {
-      return createSettingsLock(lockPath, label);
+      return createDataHomeLock(lockPath, label);
     } catch (error) {
       if (!error || error.code !== 'EEXIST') throw error;
     }
     try {
-      const recovered = recoverSettingsLock(lockPath, label);
+      const recovered = recoverDataHomeLock(lockPath, label);
       if (recovered) return recovered;
     } catch (error) {
       // A different writer can acquire or release between inspection and recovery.
@@ -174,7 +197,7 @@ function acquireSettingsLock(settingsPath, { label = 'Claude settings', timeoutM
     const remaining = deadline - performance.now();
     if (remaining <= 0) {
       throw new Error(
-        `Another ECC process is updating ${label}: ${settingsPath}. `
+        `Another ECC process is updating ${label}: ${targetPath}. `
         + `If no ECC process is active, inspect and remove ${lockPath}.`
       );
     }
@@ -182,8 +205,8 @@ function acquireSettingsLock(settingsPath, { label = 'Claude settings', timeoutM
   }
 }
 
-function runWithSettingsLock(settingsPath, callback) {
-  const releaseLock = acquireSettingsLock(settingsPath);
+function runWithDataHomeLock(targetPath, callback) {
+  const releaseLock = acquireDataHomeLock(targetPath);
   let primaryError = null;
   let result;
   try {
@@ -208,8 +231,8 @@ function runWithSettingsLock(settingsPath, callback) {
 }
 
 module.exports = {
-  acquireSettingsLock,
-  getSettingsLockIdentity,
-  runWithSettingsLock,
+  acquireDataHomeLock,
+  getDataHomeLockIdentity,
+  runWithDataHomeLock,
   sameFileIdentity,
 };

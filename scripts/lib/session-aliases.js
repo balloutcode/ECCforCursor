@@ -1,11 +1,11 @@
 /**
- * Session Aliases Library for Claude Code
+ * Session aliases for this Cursor install
  * Manages session aliases stored in $ECC_AGENT_DATA_HOME/session-aliases.json (Cursor default ~/.cursor/ecc/session-aliases.json).
  */
 
 const path = require('path');
 const { readFileWithSharingRetry, writeFileAtomic } = require('./atomic-write');
-const { acquireSettingsLock } = require('./install/claude-settings-lock');
+const { acquireDataHomeLock } = require('./ecc-data-home-lock');
 
 const {
   getClaudeDir,
@@ -120,7 +120,7 @@ function withAliasesLock(callback, failure) {
 
   let release;
   try {
-    release = acquireSettingsLock(aliasesPath, { label: 'session aliases', timeoutMs: 5000 });
+    release = acquireDataHomeLock(aliasesPath, { label: 'session aliases', timeoutMs: 5000 });
   } catch (error) {
     log(`[Aliases] Error locking aliases: ${error.message}`);
     return failure;

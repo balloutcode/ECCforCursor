@@ -1,5 +1,7 @@
 # The Longform Guide to ECC
 
+This essay was adapted from ECC 2.2.3. ECCforCursor installs only into Cursor: `.\install.ps1 --profile full --target cursor --enable-hooks` or `./install.sh --profile full --target cursor --enable-hooks`. Plugin `ecc-for-cursor`. Memory `~/.cursor/ecc`. Repository https://github.com/balloutcode/ECCforCursor. Where the essay names `~/.claude/`, use `.cursor/` for this fork.
+
 ![Header: The Longform Guide to ECC](./assets/images/longform/01-header.png)
 
 ---
@@ -15,7 +17,7 @@ This longform guide goes into the techniques that separate productive sessions f
 
 The themes here: token economics, memory persistence, verification patterns, parallelization strategies, and the compound effects of building reusable workflows. These are the patterns I've refined over 10+ months of daily use that make the difference between being plagued by context rot within the first hour, versus maintaining productive sessions for hours.
 
-Everything covered in the shorthand and longform guides is available on GitHub: `github.com/affaan-m/ECC`
+Everything covered in the shorthand and longform guides ships in [ECCforCursor](https://github.com/balloutcode/ECCforCursor), adapted from ECC 2.2.3. Do not clone https://github.com/affaan-m/ECC to update this fork.
 
 ---
 
@@ -40,7 +42,7 @@ With lazy loading, the context window issue is mostly solved. But token usage an
 For sharing memory across sessions, a skill or command that summarizes and checks in on progress then saves to a `.tmp` file in your `.claude` folder and appends to it until the end of your session is the best bet. The next day it can use that as context and pick up where you left off, create a new file for each session so you don't pollute old context into new work.
 
 ![Session Storage File Tree](./assets/images/longform/03-session-storage.png)
-*Example of session storage -> <https://github.com/affaan-m/ECC/blob/main/commands/save-session.md#session-file-format>*
+*Example of session storage -> [commands/save-session.md](commands/save-session.md)*
 
 Claude creates a file summarizing current state. Review it, ask for edits if needed, then start fresh. For the new conversation, just provide the file path. Particularly useful when you're hitting context limits and need to continue complex work. These files should contain:
 - What approaches worked (verifiably with evidence)
@@ -82,7 +84,7 @@ There are hooks most people don't know about that help with memory:
 - **Stop Hook (Session End)**: On session end, persist learnings to a file
 - **SessionStart Hook**: On new session, load previous context automatically
 
-I've built these hooks and they're in the repo at `github.com/affaan-m/ECC/tree/main/hooks/memory-persistence`
+Session memory for this fork is `~/.cursor/ecc`, loaded from the Cursor `sessionStart` hook. `hooks/memory-persistence` is not in this checkout. See [docs/CURSOR.md](docs/CURSOR.md).
 
 ---
 
@@ -94,7 +96,7 @@ If you've had to repeat a prompt multiple times and Claude ran into the same pro
 
 **The Solution:** When Claude Code discovers something that isn't trivial - a debugging technique, a workaround, some project-specific pattern - it saves that knowledge as a new skill. Next time a similar problem comes up, the skill gets loaded automatically.
 
-I've built a continuous learning skill that does this: `github.com/affaan-m/ECC/tree/main/skills/continuous-learning`
+The continuous learning skill in this checkout is [skills/continuous-learning/SKILL.md](skills/continuous-learning/SKILL.md).
 
 **Why Stop Hook (Not UserPromptSubmit):**
 
@@ -351,4 +353,4 @@ alias q='cd ~/Desktop/projects'
 
 ---
 
-*Everything covered in both guides is available on GitHub at [ECC](https://github.com/affaan-m/ECC)*
+*Everything covered in both guides ships in [ECCforCursor](https://github.com/balloutcode/ECCforCursor), adapted from [ECC](https://github.com/affaan-m/ECC) 2.2.3.*

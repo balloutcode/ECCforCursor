@@ -9,12 +9,14 @@ const { discoverInstalledStates } = require('./lib/install-lifecycle');
 const { getRecordedHookConsent } = require('./lib/install/hook-consent');
 const { SUPPORTED_INSTALL_TARGETS } = require('./lib/install-manifests');
 
+const ECC_UPDATE_REPOSITORY = 'https://github.com/balloutcode/ECCforCursor.git';
+
 function showHelp(exitCode = 0) {
   console.log(`
 Usage: node scripts/auto-update.js [--target <${SUPPORTED_INSTALL_TARGETS.join('|')}>] [--repo-root <path>] [--dry-run] [--json]
 
-Pull the latest ECC repo changes and reinstall the current context's managed targets
-using the original install-state request.
+Pull the latest ECCforCursor changes from https://github.com/balloutcode/ECCforCursor
+and reinstall the current context's managed targets using the original install-state request.
 `);
   process.exit(exitCode);
 }
@@ -272,8 +274,8 @@ function runAutoUpdate(options = {}, dependencies = {}) {
   };
 
   if (!options.dryRun) {
-    execute('git', ['fetch', '--all', '--prune'], { cwd: repoRoot, env });
-    execute('git', ['pull', '--ff-only'], { cwd: repoRoot, env });
+    execute('git', ['fetch', '--prune', ECC_UPDATE_REPOSITORY, 'HEAD'], { cwd: repoRoot, env });
+    execute('git', ['pull', '--ff-only', ECC_UPDATE_REPOSITORY, 'HEAD'], { cwd: repoRoot, env });
   }
 
   for (const entry of validRecords) {

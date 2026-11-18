@@ -79,7 +79,7 @@ exit 2
   - macOS (Homebrew): `brew install python-tk`
   - Windows: re-run the python.org installer and enable "tcl/tk and IDLE"
 - Or use the browser dashboard, which only needs Node: `npm run dashboard:web`, then open the printed localhost URL.
-- Both commands must be run from a full clone of the ECC repo (`git clone https://github.com/affaan-m/ECC`), not from inside the Claude Code plugin directory — plugin installs do not ship `package.json` scripts.
+- Both commands must be run from a full clone of this fork (`git clone https://github.com/balloutcode/ECCforCursor.git`). This fork was adapted from ECC 2.2.3. Do not clone https://github.com/affaan-m/ECC to update it.
 
 ## Anthropic Cyber Safeguards Block Security Audits Of Your Own Code
 
@@ -95,6 +95,6 @@ exit 2
 ## Related ECC Docs
 
 - [hook-bug-workarounds.md](./hook-bug-workarounds.md) for the shorter hook/compaction/MCP recovery checklist.
-- [hooks/README.md](../hooks/README.md) for ECC's documented hook lifecycle and exit-code behavior.
+- [docs/CURSOR.md](./CURSOR.md) for this fork's hook events. `hooks/README.md` is not in this checkout.
 - [token-optimization.md](./token-optimization.md) for cost and context management settings.
 - [issue #644](https://github.com/affaan-m/ECC/issues/644) for the original report and tested environment.

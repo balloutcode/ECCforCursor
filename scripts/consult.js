@@ -7,7 +7,7 @@ const {
   loadInstallManifests,
 } = require('./lib/install-manifests');
 
-const DEFAULT_TARGET = 'claude';
+const DEFAULT_TARGET = 'cursor';
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 20;
 const SCHEMA_VERSION = 'ecc.consult.v1';

@@ -274,8 +274,8 @@ claude --version
 # Requires Claude Code 2.0+
 
 # Manual install (if marketplace fails)
-git clone https://github.com/affaan-m/ECC.git
-cp -r ECC ~/.claude/plugins/ecc
+git clone https://github.com/balloutcode/ECCforCursor.git
+.\install.ps1 --profile full --target cursor --enable-hooks
 ```
 
 ### Package Manager Detection Fails

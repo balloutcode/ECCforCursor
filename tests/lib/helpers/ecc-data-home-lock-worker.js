@@ -1,9 +1,9 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { acquireSettingsLock } = require('../../../scripts/lib/install/claude-settings-lock');
-const [root, settingsPath] = process.argv.slice(2);
-const release = acquireSettingsLock(settingsPath);
+const { acquireDataHomeLock } = require('../../../scripts/lib/ecc-data-home-lock');
+const [root, targetPath] = process.argv.slice(2);
+const release = acquireDataHomeLock(targetPath);
 fs.writeFileSync(path.join(root, 'held'), '');
 const deadline = Date.now() + 15000;
 const sleeper = new Int32Array(new SharedArrayBuffer(4));

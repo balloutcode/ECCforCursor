@@ -8,7 +8,6 @@
 
 const os = require('os');
 const {
-  SUPPORTED_INSTALL_TARGETS,
   listLegacyCompatibilityLanguages,
   listSupportedLocales,
 } = require('./lib/install-manifests');
@@ -27,31 +26,13 @@ function getHelpText() {
 
   return `
 Usage: install.sh [--target <${LEGACY_INSTALL_TARGETS.join('|')}>] [--dry-run] [--json] <language> [<language> ...]
-       install.sh [--target <${SUPPORTED_INSTALL_TARGETS.join('|')}>] [--dry-run] [--json] --profile <name> [--with <component>]... [--without <component>]...
-       install.sh [--target <${SUPPORTED_INSTALL_TARGETS.join('|')}>] [--dry-run] [--json] --modules <id,id,...> [--with <component>]... [--without <component>]...
-       install.sh [--target <${SUPPORTED_INSTALL_TARGETS.join('|')}>] [--dry-run] [--json] --skills <skill-id[,skill-id...]>
-       install.sh [--target claude|claude-project] [--dry-run] [--json] --locale <locale-code>
+       install.sh [--target cursor] [--dry-run] [--json] --profile <name> [--with <component>]... [--without <component>]...
+       install.sh [--target cursor] [--dry-run] [--json] --modules <id,id,...> [--with <component>]... [--without <component>]...
+       install.sh [--target cursor] [--dry-run] [--json] --skills <skill-id[,skill-id...]>
        install.sh [--dry-run] [--json] --config <path>
 
 Targets:
-  claude       (default) - Install ECC into ~/.claude/ with managed rules under rules/ecc and flat skills under skills/
-  claude-project - Install ECC into ./.claude/ (per-project) with managed rules under rules/ecc and flat skills under skills/
-  cursor       - Install rules, hooks, and bundled Cursor configs to ./.cursor/
-  antigravity  - Install rules, workflows, skills, and agents to ./.agents/
-  codex        - Install shared agents/config into ~/.codex/
-  copilot      - Install skills and agents into ./.github/ for GitHub Copilot CLI (ECC hooks not configured)
-  gemini       - Install project-local Gemini config into ./.gemini/
-  opencode     - Install into OPENCODE_CONFIG_DIR, XDG_CONFIG_HOME/opencode, or ~/.config/opencode/
-  codebuddy    - Install commands, agents, skills, and flattened rules into ./.codebuddy/
-  joycode      - Install commands, agents, skills, and flattened rules into ./.joycode/
-  qwen         - Install commands, agents, skills, rules, and Qwen config into ~/.qwen/
-  zed          - Install project settings, commands, agents, skills, and flattened rules into ./.zed/
-  hermes       - Install shared rules/skills/commands into ~/.hermes/
-  kimi         - Install Kimi Code project instructions, skills, and MCP config into ./.kimi-code/ (ECC hooks not configured)
-  grok         - Install through the canonical plan/apply/receipt lifecycle into ~/.grok/plugins/ecc/
-  openclaw     - Install shared rules/skills/commands into ~/.openclaw/
-  adal         - Install shared rules/skills/commands into ./.adal/
-  mistral-vibe - Install selected skills into ./.vibe/skills/ (Vibe hooks and agents not configured)
+  cursor       (default) - Install rules, hooks, and bundled Cursor configs into ./.cursor/
 
 Options:
   --profile <name>    Resolve and install a manifest profile
@@ -60,16 +41,15 @@ Options:
   --skills <ids>      Install one or more skill directories by ID, e.g. continuous-learning-v2
   --without <component>
                       Exclude a user-facing install component
-  --locale <code>     Install translated docs to ~/.claude/docs/<locale>/ (or ./.claude/docs/<locale>/ for claude-project)
-                      (claude or claude-project target only; can be combined with --profile or --with)
+  --locale <code>     Not used by the Cursor install. This fork writes ./.cursor/ and does not install translated Claude docs
   --config <path>     Load install intent from ecc-install.json
   --enable-hooks      Confirm installing the automatic hook runtime (required
                       when the selected profile/modules materialize hooks)
   --no-hooks          Install everything except the automatic hook runtime
-  --trust             Trust executable Grok capabilities (still requires each consent flag)
-  --consent-hooks     Allow Grok hooks for this install
-  --consent-mcp <ids> Allow named Grok MCP servers, comma-separated
-  --source-sha <sha>   Install or roll back Grok to an exact 40-character Git commit
+  --trust             Mark this Cursor install request as trusted
+  --consent-hooks     Same consent as --enable-hooks
+  --consent-mcp <ids> Record named MCP servers the operator consented to, comma-separated
+  --source-sha <sha>  Record a 40-character lowercase commit SHA for this install
   --dry-run    Show the install plan without copying files
   --json       Emit machine-readable plan/result JSON
   --help       Show this help text

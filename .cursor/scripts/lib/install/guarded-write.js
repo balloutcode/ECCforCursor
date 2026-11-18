@@ -3,7 +3,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { sameFileIdentity } = require('./claude-settings-lock');
+const { sameFileIdentity } = require('../ecc-data-home-lock');
 
 function snapshotExpectedContent(expectedContent) {
   if (expectedContent === undefined) return undefined;

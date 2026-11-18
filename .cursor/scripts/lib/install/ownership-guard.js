@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 
 const { readInstallState } = require('../install-state');
-const { hasEditedCodexUserConfig } = require('./codex-user-config');
 
 function pathExists(filePath) {
   try {
@@ -71,20 +70,15 @@ function prepareUserOwnedFileGuard(plan, migration, recordedState) {
   const skippedOperations = [];
   const warnings = [];
   for (const operation of [...plannedOperations, ...retainedOperations]) {
-    const previousOperation = previousManagedOperations.get(comparablePath(operation.destinationPath));
-    const editedConfig = previousOperation
-      && hasEditedCodexUserConfig(plan, operation, previousOperation);
     if (
       operation
       && operation.kind === 'copy-file'
       && operation.destinationPath
       && pathExists(operation.destinationPath)
-      && (!managedDestinations.has(comparablePath(operation.destinationPath)) || editedConfig)
+      && !managedDestinations.has(comparablePath(operation.destinationPath))
     ) {
       skippedOperations.push(operation);
-      warnings.push(editedConfig
-        ? `Preserved user configuration ${operation.destinationPath}: changed or unverifiable since installation. ECC no longer manages this file; apply future configuration updates manually.`
-        : `Skipped user-owned file ${operation.destinationPath}: the existing file is not recorded in ECC install-state.`);
+      warnings.push(`Skipped user-owned file ${operation.destinationPath}: the existing file is not recorded in ECC install-state.`);
       continue;
     }
   }
@@ -137,11 +131,7 @@ function prepareUserOwnedFileGuard(plan, migration, recordedState) {
   };
 }
 
-function assertNoNewUserOwnedFile(migration, operation, plan) {
-  const previousOperation = migration.previousManagedOperations.get(comparablePath(operation.destinationPath));
-  if (plan && hasEditedCodexUserConfig(plan, operation, previousOperation)) {
-    throw new Error(`Refusing to overwrite user configuration changed after planning: ${operation.destinationPath}. Rerun to preserve it.`);
-  }
+function assertNoNewUserOwnedFile(migration, operation) {
   if (operation.kind !== 'copy-file'
     || migration.managedDestinations.has(comparablePath(operation.destinationPath))
     || !pathExists(operation.destinationPath)) {

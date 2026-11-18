@@ -3,7 +3,6 @@ const path = require('path');
 const { assertWithinTrustedRoot } = require('../path-safety');
 const { mergeHooksMetadata, metadataPathFor } = require('../hooks-config');
 const { writeFileNoFollow: guardedWriteFile } = require('./guarded-write');
-const { assertClaudeSettingsPath } = require('./claude-settings');
 
 function getManagedDestination(
   destinationPath,
@@ -171,13 +170,6 @@ function readHooksConfigNoFollow(hooksPath) {
   return mergeHooksMetadata(hooksConfig, readJsonNoFollow(metadataPath), hooksPath);
 }
 
-function assertClaudeSettingsDestination(operation, trustedRoot, target = null) {
-  if (target && target !== 'claude' && target !== 'claude-project') {
-    throw new Error('Refusing to manage Claude hooks for a non-Claude target.');
-  }
-  assertClaudeSettingsPath(operation.destinationPath, trustedRoot);
-}
-
 function writeContainedFile(destinationPath, content, trustedRoot, action, mode, writeOptions) {
   const preparedDestination = prepareContainedWriteDestination(destinationPath, trustedRoot, action);
   const finalDestination = getManagedDestination(
@@ -300,7 +292,6 @@ function cleanupEmptyParentDirs(filePath, stopAt) {
 }
 
 module.exports = {
-  assertClaudeSettingsDestination,
   cleanupEmptyParentDirs,
   copyContainedFile,
   createChangedDestinationError,

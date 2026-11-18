@@ -1,18 +1,3 @@
-const path = require('path');
-const {
-  CLAUDE_HOOKS_CONFIG_PATH,
-  getClaudeSettingsPath,
-  validateRecordedManagedHooks,
-} = require('./install/claude-settings');
-
-// A module may only own the settings merge for the hook config it ships. The
-// install state is the record of what the installer did, so this map is what
-// keeps one module from claiming another module's hook source.
-const CLAUDE_HOOKS_CONFIG_OWNERS = Object.freeze({
-  'hooks-runtime': CLAUDE_HOOKS_CONFIG_PATH,
-  'config-health': 'manifests/install-assets/config-health-hooks.json',
-});
-
 // Dependency-free, self-contained validation. The installer closure must not
 // require any non-builtin package (enterprise supply-chain vetting: the vetted
 // bytes must be the installed bytes). install-state is validated by the
@@ -229,45 +214,8 @@ function createFallbackValidator() {
         ) {
           pushError(`${instancePath}/contentSha256`, 'must be a SHA-256 hex digest');
         }
-        if (operation.kind === 'update-claude-settings') {
-          if (!['claude', 'claude-project'].includes(state.target && state.target.target)) {
-            pushError(`${instancePath}/kind`, 'is only valid for Claude targets');
-          }
-          const expectedSource = CLAUDE_HOOKS_CONFIG_OWNERS[operation.moduleId];
-          if (!expectedSource) {
-            pushError(
-              `${instancePath}/moduleId`,
-              `must be a module that ships its own hooks (${Object.keys(CLAUDE_HOOKS_CONFIG_OWNERS).join(', ')})`
-            );
-          } else if (
-            String(operation.sourceRelativePath).replace(/\\/g, '/') !== expectedSource
-          ) {
-            pushError(
-              `${instancePath}/sourceRelativePath`,
-              `must equal ${expectedSource} for module "${operation.moduleId}"`
-            );
-          }
-          if (
-            isNonEmptyString(state.target && state.target.root)
-            && isNonEmptyString(operation.destinationPath)
-          ) {
-            const expectedDestination = path.resolve(getClaudeSettingsPath(state.target.root));
-            const actualDestination = path.resolve(operation.destinationPath);
-            const pathsMatch = process.platform === 'win32'
-              ? expectedDestination.toLowerCase() === actualDestination.toLowerCase()
-              : expectedDestination === actualDestination;
-            if (!pathsMatch) {
-              pushError(
-                `${instancePath}/destinationPath`,
-                'must equal the canonical Claude settings path'
-              );
-            }
-          }
-          try {
-            validateRecordedManagedHooks(operation.managedHooks);
-          } catch (error) {
-            pushError(`${instancePath}/managedHooks`, error.message);
-          }
+        if (operation.kind === 'update-claude-settings' || operation.kind === 'remove-claude-settings-hooks') {
+          pushError(`${instancePath}/kind`, 'is not a Cursor install operation');
         }
       }
     }

@@ -2,7 +2,7 @@
  * Tests for scripts/lib/session-aliases.js
  *
  * These tests use a temporary directory to avoid touching
- * the real ~/.claude/session-aliases.json.
+ * the real ~/.cursor/ecc/session-aliases.json.
  *
  * Run with: node tests/lib/session-aliases.test.js
  */
@@ -15,7 +15,6 @@ const os = require('os');
 // We need to mock getClaudeDir to point to a temp dir.
 // The simplest approach: set HOME to a temp dir before requiring the module.
 const tmpHome = path.join(os.tmpdir(), `ecc-alias-test-${Date.now()}`);
-fs.mkdirSync(path.join(tmpHome, '.claude'), { recursive: true });
 const origHome = process.env.HOME;
 const origUserProfile = process.env.USERPROFILE;
 const origAgentDataHome = process.env.ECC_AGENT_DATA_HOME;
@@ -24,6 +23,7 @@ process.env.HOME = tmpHome;
 process.env.USERPROFILE = tmpHome; // Windows: os.homedir() uses USERPROFILE
 
 const aliases = require('../../scripts/lib/session-aliases');
+fs.mkdirSync(path.dirname(aliases.getAliasesPath()), { recursive: true });
 
 // Test helper
 function test(name, fn) {
@@ -799,7 +799,7 @@ function runTests() {
     aliases.setAlias('before-fail', '/path/safe');
 
     // Verify the file exists
-    const aliasesPath = path.join(tmpHome, '.claude', 'session-aliases.json');
+    const aliasesPath = aliases.getAliasesPath();
     assert.ok(fs.existsSync(aliasesPath), 'Aliases file should exist');
 
     // Attempt to save circular data — will fail
@@ -1001,8 +1001,7 @@ function runTests() {
     // On macOS, overwriting an EXISTING file in a read-only dir succeeds,
     // so we must start clean with ONLY the .json file present.
     const isoHome = path.join(os.tmpdir(), `ecc-alias-r70-${Date.now()}`);
-    const isoClaudeDir = path.join(isoHome, '.claude');
-    fs.mkdirSync(isoClaudeDir, { recursive: true });
+    let isoClaudeDir;
     const savedHome = process.env.HOME;
     const savedProfile = process.env.USERPROFILE;
     try {
@@ -1018,8 +1017,9 @@ function runTests() {
       // Verify no leftover .tmp/.bak
       const ap = freshAliases.getAliasesPath();
       assert.ok(fs.existsSync(ap), 'Alias file should exist after setAlias');
+      isoClaudeDir = path.dirname(ap);
 
-      // Make .claude dir read-only so saveAliases fails when creating .bak
+      // Make the alias directory read-only so saveAliases fails when creating .bak
       fs.chmodSync(isoClaudeDir, 0o555);
 
       const result = freshAliases.updateAliasTitle('title-save-fail', 'New Title');
@@ -1045,8 +1045,7 @@ function runTests() {
       return;
     }
     const isoHome = path.join(os.tmpdir(), `ecc-alias-r72-${Date.now()}`);
-    const isoClaudeDir = path.join(isoHome, '.claude');
-    fs.mkdirSync(isoClaudeDir, { recursive: true });
+    let isoClaudeDir;
     const savedHome = process.env.HOME;
     const savedProfile = process.env.USERPROFILE;
     try {
@@ -1060,8 +1059,9 @@ function runTests() {
       freshAliases.setAlias('to-delete', '/path/session', 'Test');
       const ap = freshAliases.getAliasesPath();
       assert.ok(fs.existsSync(ap), 'Alias file should exist after setAlias');
+      isoClaudeDir = path.dirname(ap);
 
-      // Make .claude directory read-only — save will fail (can't create temp file)
+      // Make the alias directory read-only — save will fail (can't create temp file)
       fs.chmodSync(isoClaudeDir, 0o555);
 
       const result = freshAliases.deleteAlias('to-delete');
@@ -1087,8 +1087,7 @@ function runTests() {
       return;
     }
     const isoHome = path.join(os.tmpdir(), `ecc-alias-r73-cleanup-${Date.now()}`);
-    const isoClaudeDir = path.join(isoHome, '.claude');
-    fs.mkdirSync(isoClaudeDir, { recursive: true });
+    let isoClaudeDir;
     const savedHome = process.env.HOME;
     const savedProfile = process.env.USERPROFILE;
     try {
@@ -1101,8 +1100,9 @@ function runTests() {
       // Create aliases — one to keep, one to remove
       freshAliases.setAlias('keep-me', '/sessions/real', 'Kept');
       freshAliases.setAlias('remove-me', '/sessions/gone', 'Gone');
+      isoClaudeDir = path.dirname(freshAliases.getAliasesPath());
 
-      // Make .claude dir read-only so save will fail
+      // Make the alias directory read-only so save will fail
       fs.chmodSync(isoClaudeDir, 0o555);
 
       // Cleanup: "gone" session doesn't exist, so remove-me should be removed
@@ -1133,8 +1133,7 @@ function runTests() {
       return;
     }
     const isoHome = path.join(os.tmpdir(), `ecc-alias-r73-set-${Date.now()}`);
-    const isoClaudeDir = path.join(isoHome, '.claude');
-    fs.mkdirSync(isoClaudeDir, { recursive: true });
+    let isoClaudeDir;
     const savedHome = process.env.HOME;
     const savedProfile = process.env.USERPROFILE;
     try {
@@ -1143,8 +1142,10 @@ function runTests() {
       delete require.cache[require.resolve('../../scripts/lib/session-aliases')];
       delete require.cache[require.resolve('../../scripts/lib/utils')];
       const freshAliases = require('../../scripts/lib/session-aliases');
+      isoClaudeDir = path.dirname(freshAliases.getAliasesPath());
+      fs.mkdirSync(isoClaudeDir, { recursive: true });
 
-      // Make .claude dir read-only BEFORE any setAlias call
+      // Make the alias directory read-only BEFORE any setAlias call
       fs.chmodSync(isoClaudeDir, 0o555);
 
       const result = freshAliases.setAlias('my-alias', '/sessions/test', 'Test');
