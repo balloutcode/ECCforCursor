@@ -238,3 +238,5 @@ Cursor отправит его сам. У скрипта в `hooks.json` лим�
 | Память в `~/.claude` | `~/.cursor/ecc` |
 
 Повторная установка поверх Claude Code этому форку не нужна: в поставке нет `CLAUDE.md` и каталога `.claude/`. Это инструкции Claude Code, манифест Cursor их не подключает.
+
+В 2.2.4 дополнительно убраны файлы, которые Cursor не загружает и цель `cursor` не копирует: `plugins/README.md`, `manifests/install-assets/claude-project-scripts-package.json` и тесты снятых поверхностей Codex и OpenCode (`docs/CODEX-NAVIGATION-GUIDE.md`, `.codex/`, `.opencode/opencode.json`, `hooks/codex-hooks.json`, `scripts/codex/`, `scripts/sync-ecc-to-codex.sh`). Каталоги `.claude/`, `.codex/`, `.kimi/`, `.opencode/` и `scripts/codex-git-hooks` по-прежнему отсутствуют.

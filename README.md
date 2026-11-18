@@ -12,7 +12,7 @@ Details of hooks, memory, and agent fields are in [docs/CURSOR.md](docs/CURSOR.m
 
 ## Install with the Cursor plugin
 
-The manifest is `.cursor-plugin/plugin.json`. The plugin name is `ecc-for-cursor`, version `2.2.3`, license `MIT`. `homepage` and `repository` are this GitHub repository. `.cursor-plugin/marketplace.json` lists that same plugin at the repository root, so Customize can import this GitHub repo. Component fields follow the [Plugins reference](https://cursor.com/docs/reference/plugins) and point at `.cursor/`:
+The manifest is `.cursor-plugin/plugin.json`. The plugin name is `ecc-for-cursor`, version `2.2.4`, license `MIT`. `homepage` and `repository` are this GitHub repository. `.cursor-plugin/marketplace.json` lists that same plugin at the repository root, so Customize can import this GitHub repo. Component fields follow the [Plugins reference](https://cursor.com/docs/reference/plugins) and point at `.cursor/`:
 
 | Field | Path |
 | --- | --- |

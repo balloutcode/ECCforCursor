@@ -1,6 +1,6 @@
 {
   "name": "ecc-universal",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "ECCforCursor: ECC 2.2.3 adapted for Cursor. Install into Cursor projects with --target cursor. Not WideAudio.",
   "exports": {
     "./package.json": "./package.json",

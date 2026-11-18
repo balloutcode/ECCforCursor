@@ -24,10 +24,13 @@ function agentDataHome() {
   if (configured) return configured;
   try {
     const { resolveAgentDataHome } = loadRuntimeModule('scripts', 'lib', 'agent-data-home.js');
-    return resolveAgentDataHome({ preferCursorDefault: true });
+    const resolved = resolveAgentDataHome({ preferCursorDefault: true });
+    if (resolved && String(resolved).trim()) return resolved;
   } catch {
-    return '';
+    // Cursor memory stays under ~/.cursor/ecc even when the resolver cannot load.
   }
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  return home ? path.join(home, '.cursor', 'ecc') : path.join('~', '.cursor', 'ecc');
 }
 
 function qualityGateScript() {
@@ -39,23 +42,104 @@ function qualityGateScript() {
   return candidates.find(candidate => fs.existsSync(candidate)) || '';
 }
 
-function runPython(script, input, env) {
-  const attempts = process.platform === 'win32'
-    ? [['py', ['-3', script]], ['python', [script]], ['python3', [script]]]
-    : [['python3', [script]], ['python', [script]]];
-  for (const [command, args] of attempts) {
-    const result = spawnSync(command, args, {
-      input,
-      encoding: 'utf8',
-      env,
-      timeout: 15000,
-      windowsHide: true,
-    });
-    if (result.error && result.error.code === 'ENOENT') continue;
-    if (result.status === 9009) continue;
-    return result;
+function isWindowsAppsAlias(filePath) {
+  return /[\\/]WindowsApps[\\/]/i.test(String(filePath || ''));
+}
+
+function whereRealExecutable(command) {
+  if (process.platform !== 'win32') return '';
+  const result = spawnSync('where.exe', [command], {
+    encoding: 'utf8',
+    timeout: 4000,
+    windowsHide: true,
+  });
+  if (!result || result.status !== 0) return '';
+  return String(result.stdout || '')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .find(line => line && !isWindowsAppsAlias(line)) || '';
+}
+
+function discoverWindowsPythons() {
+  const roots = [
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs', 'Python'),
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Python'),
+  ].filter(Boolean);
+  const found = [];
+  for (const root of roots) {
+    if (!fs.existsSync(root)) continue;
+    let entries = [];
+    try {
+      entries = fs.readdirSync(root, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !/^Python3\d+$/i.test(entry.name)) continue;
+      const executable = path.join(root, entry.name, 'python.exe');
+      if (fs.existsSync(executable)) found.push({ command: executable, args: [] });
+    }
+    const launcher = path.join(root, 'Launcher', 'py.exe');
+    if (fs.existsSync(launcher)) found.push({ command: launcher, args: ['-3'] });
   }
-  return null;
+  return found;
+}
+
+function pythonLaunchers() {
+  const launchers = process.platform === 'win32'
+    ? [
+      ...discoverWindowsPythons(),
+      ...['py', 'python', 'python3'].flatMap(command => {
+        const resolved = whereRealExecutable(command);
+        if (!resolved) return [];
+        return [{ command: resolved, args: command === 'py' ? ['-3'] : [] }];
+      }),
+    ]
+    : [
+      { command: 'python3', args: [] },
+      { command: 'python', args: [] },
+    ];
+  const seen = new Set();
+  return launchers.filter(launcher => {
+    const key = `${launcher.command}\0${launcher.args.join(' ')}`;
+    if (seen.has(key) || isWindowsAppsAlias(launcher.command)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isRealPython(launcher) {
+  const result = spawnSync(launcher.command, [...launcher.args, '-c', 'import sys; raise SystemExit(0 if sys.version_info[0] >= 3 else 1)'], {
+    encoding: 'utf8',
+    timeout: 8000,
+    windowsHide: true,
+  });
+  if (!result || result.error || result.status !== 0) return false;
+  const text = `${result.stdout || ''}\n${result.stderr || ''}`;
+  return !/Microsoft Store|Python was not found/i.test(text);
+}
+
+let resolvedPython = null;
+
+function resolvePython() {
+  if (resolvedPython !== null) return resolvedPython || null;
+  resolvedPython = pythonLaunchers().find(isRealPython) || false;
+  return resolvedPython || null;
+}
+
+function runPython(script, input, env) {
+  const launcher = resolvePython();
+  if (!launcher) return null;
+  const result = spawnSync(launcher.command, [...launcher.args, script], {
+    input,
+    encoding: 'utf8',
+    env,
+    timeout: 15000,
+    windowsHide: true,
+  });
+  if (result.error && result.error.code === 'ENOENT') return null;
+  if (result.status === 9009) return null;
+  return result;
 }
 
 function deliveryGateFollowup(input) {

@@ -63,6 +63,8 @@ def get_project_memory_dir() -> Optional[str]:
     # character (including spaces) with '-'.
     safe = re.sub(r'[^A-Za-z0-9]', '-', cwd)
     data_home = os.environ.get('ECC_AGENT_DATA_HOME', '').strip()
+    if not data_home and (os.environ.get('CURSOR_PROJECT_DIR') or os.environ.get('CURSOR_VERSION')):
+        data_home = os.path.join('~', '.cursor', 'ecc')
     if data_home:
         mem = os.path.join(os.path.expanduser(data_home), 'projects', safe, 'memory')
     else:

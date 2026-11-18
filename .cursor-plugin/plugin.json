@@ -1,6 +1,6 @@
 {
   "name": "ecc-for-cursor",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "Cursor-only install of ECC: rules, skills, agents, commands, and hooks for Cursor projects.",
   "license": "MIT",
   "homepage": "https://github.com/balloutcode/ECCforCursor",

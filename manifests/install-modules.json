@@ -440,6 +440,7 @@
         "skills/config-gc",
         "skills/context-budget",
         "skills/delivery-gate",
+        "skills/ecc-conventions",
         "skills/ecc-guide",
         "skills/ecc-recipes",
         "skills/growth-log",
