@@ -1,0 +1,16 @@
+---
+description: "Java Hooks"
+globs: ["**/*.java", "**/pom.xml", "**/build.gradle", "**/build.gradle.kts"]
+alwaysApply: false
+---
+# Java Hooks
+
+> This file extends [common/hooks.md](common-hooks.mdc) with Java-specific content.
+
+## PostToolUse Hooks
+
+Claude Code only — configure in `~/.claude/settings.json`. This Cursor install uses `.cursor/hooks.json` and must not gain a Claude settings file:
+
+- **google-java-format**: Auto-format `.java` files after edit
+- **checkstyle**: Run style checks after editing Java files
+- **./mvnw compile** or **./gradlew compileJava**: Verify compilation after changes
