@@ -2,7 +2,7 @@
 
 Этот репозиторий ставится в обычный проект Cursor. Рабочая поверхность — каталог `.cursor/` в корне проекта. Память сессий лежит в `~/.cursor/ecc` (в Windows это `%USERPROFILE%\.cursor\ecc`).
 
-Публичный репозиторий: [github.com/balloutcode/eccforcursor](https://github.com/balloutcode/eccforcursor). Тот же адрес записан в `homepage` и `repository` манифеста плагина.
+Публичный репозиторий: [github.com/balloutcode/ECCforCursor](https://github.com/balloutcode/ECCforCursor). Тот же адрес записан в `homepage` и `repository` манифеста плагина.
 
 Каталог `.claude/` здесь отсутствует намеренно. Хуки Claude Code, файл `settings.json`, список `permissions.allow` и агенты из `.claude/agents/` — это функции Claude Code. Форк их не использует и не создаёт.
 

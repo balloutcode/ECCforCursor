@@ -32,7 +32,7 @@ function runTests() {
     assert.ok(readme.includes('## Install into a new project'));
     assert.ok(readme.includes('.\\install.ps1 --profile full --target cursor --enable-hooks'));
     assert.ok(readme.includes('./install.sh --profile full --target cursor --enable-hooks'));
-    assert.ok(readme.includes('https://github.com/balloutcode/eccforcursor'));
+    assert.ok(readme.includes('https://github.com/balloutcode/ECCforCursor'));
     assert.ok(readme.includes('Node.js 18 or newer'));
     assert.ok(readme.includes('`.cursor/agents/ecc-*.md`'));
     assert.ok(readme.includes('does not copy this repository\'s root `AGENTS.md` into `.cursor/`'));

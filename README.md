@@ -2,7 +2,7 @@
 
 ECCforCursor is a standalone Cursor toolkit adapted from [ECC](https://github.com/affaan-m/ECC) 2.2.3 (source commit `3f14a103a8694e51c1df9a806217a6d0b5f7a6f7`). It is not WideAudio. The license remains MIT.
 
-Repository: [github.com/balloutcode/eccforcursor](https://github.com/balloutcode/eccforcursor)
+Repository: [github.com/balloutcode/ECCforCursor](https://github.com/balloutcode/ECCforCursor)
 
 Install it into a Cursor project with the Cursor plugin or with `install.ps1` / `install.sh`. This repository does not ship a `.claude/` tree and does not install Claude Code, Codex, Kimi, or OpenCode.
 
