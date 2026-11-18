@@ -263,6 +263,54 @@ if (test('beforeShellExecution dispatcher preserves the dev-server guard', () =>
   assert.match(result.stderr, /Dev server must run in tmux/);
 })) passed++; else failed++;
 
+if (test('beforeSubmitPrompt does not block when transcript_path is absent', () => {
+  const result = runHook(BEFORE_PROMPT, { prompt: 'continue the work' }, {
+    ECC_CONTEXT_GATE_MODE: 'enforce',
+    ECC_DISABLED_HOOKS: 'prompt:hookify-runtime',
+  });
+  assert.strictEqual(result.status, 0, result.stderr);
+  assert.deepStrictEqual(JSON.parse(result.stdout), { continue: true });
+})) passed++; else failed++;
+
+if (test('beforeSubmitPrompt puts context-gate text in additional_context', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-cursor-context-gate-'));
+  const dataHome = path.join(root, 'ecc-home');
+  const transcript = path.join(root, 'transcript.jsonl');
+  fs.mkdirSync(dataHome);
+  fs.writeFileSync(transcript, JSON.stringify({
+    type: 'assistant',
+    message: {
+      role: 'assistant',
+      model: 'claude-fable-5',
+      usage: {
+        input_tokens: 100,
+        cache_read_input_tokens: 904900,
+        cache_creation_input_tokens: 0,
+        output_tokens: 50,
+      },
+    },
+  }) + '\n');
+  try {
+    const result = runHook(BEFORE_PROMPT, {
+      prompt: 'continue',
+      transcript_path: transcript,
+      conversation_id: 'gate-session',
+      cwd: root,
+    }, {
+      ECC_CONTEXT_GATE_MODE: 'enforce',
+      ECC_AGENT_DATA_HOME: dataHome,
+      ECC_DISABLED_HOOKS: 'prompt:hookify-runtime',
+    }, root);
+    assert.strictEqual(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout);
+    assert.strictEqual(output.continue, true);
+    assert.match(output.additional_context, /CONTEXT GATE TRIPPED/);
+    assert.match(output.additional_context, /ecc-home/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+})) passed++; else failed++;
+
 if (test('Cursor-native security hooks honor the master hook switch', () => {
   const disabledEnv = { ECC_HOOKS_ENABLED: 'false' };
   const cases = [

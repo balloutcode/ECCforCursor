@@ -18,7 +18,7 @@ ECC-native around the `/plan` confirmation gate, with zero dependencies.
 
 ## When to Use
 
-- You just wrote a plan artifact (`.claude/plans/*.plan.md` from `/plan`) and
+- You just wrote a plan artifact (`plans/*.plan.md` from `/plan`) and
   need the CONFIRM/approve decision — the canvas verdict replaces a typed
   "yes/proceed".
 - The user should *point at* what to change: reviewing designs, comparisons,
@@ -30,26 +30,22 @@ remote URLs. The canvas serves local artifact files only.
 
 ## How It Works
 
-Invoke the CLI as `ecc-plan-canvas` — the bin shipped by the `ecc-universal`
-package (on PATH after a global/plugin install; `node "$CLAUDE_PLUGIN_ROOT/scripts/plan-canvas.js"`
-also works for plugin installs). Run it from the project you are reviewing in;
+Invoke the CLI as `ecc-plan-canvas`, or as `node scripts/plan-canvas.js` from
+this repository. Run it from the project you are reviewing in;
 it works from any working directory. It manages a detached loopback server
 (`127.0.0.1:4517`) shared by all sessions, keyed by artifact path — no session
 ids to track.
 
-The workflow is a plain CLI-plus-JSON loop, so it is model- and harness-agnostic:
-any agent that can run a shell command and read stdout drives it the same way
-(Claude Code, Codex, Cursor, Gemini, OpenCode, Copilot). Trigger it however your
-harness surfaces skills — e.g. `/plan-canvas` in Claude Code, `$plan-canvas` in
-Codex — or just run the `ecc-plan-canvas` commands directly.
+The workflow is a plain CLI-plus-JSON loop. In Cursor, trigger it with
+`/plan-canvas`, or run the `ecc-plan-canvas` commands directly.
 
 ```bash
 # 1. Open the artifact in the user's browser (returns immediately)
-ecc-plan-canvas open .claude/plans/feature.plan.md
+ecc-plan-canvas open plans/feature.plan.md
 
 # 2. Block until the human responds. Leave running; re-run if interrupted:
 #    queued feedback is never lost.
-ecc-plan-canvas await .claude/plans/feature.plan.md
+ecc-plan-canvas await plans/feature.plan.md
 ```
 
 ### Stay listening, or the human talks to an empty chair
@@ -58,8 +54,7 @@ Feedback only reaches you while an `await` is actually parked on the session.
 If your turn ends with nothing listening, the message sits in the queue and,
 from the human's side of the glass, sending appears to do nothing at all.
 
-So **run `await` as a background task** when your harness supports one (in
-Claude Code, a Bash call with `run_in_background: true`). It exits the moment
+So **run `await` as a background task** when Cursor can leave a shell call running. It exits the moment
 feedback arrives and the harness hands you the JSON, which keeps the loop alive
 across turns instead of dying with the foreground call. A foreground `await`
 works too, but only until the harness time-limits it.
@@ -156,18 +151,18 @@ mirror at `ECC_PLAN_CANVAS_MERMAID_URL` for air-gapped use.
 - Sibling assets (images, CSS) must sit next to the artifact and be
   referenced by relative path.
 - The server is loopback-only and exits after 30 idle minutes
-  (`ECC_PLAN_CANVAS_IDLE_MS`); `stop` shuts it down explicitly. Claude Code's default state directory is `~/.claude/plan-canvas/`. This Cursor install must not use that default. Set `ECC_PLAN_CANVAS_STATE_DIR` to `~/.cursor/ecc/plan-canvas` so canvas state stays out of `~/.claude`.
+  (`ECC_PLAN_CANVAS_IDLE_MS`); `stop` shuts it down explicitly. Session state is `$ECC_AGENT_DATA_HOME/plan-canvas`, which defaults to `~/.cursor/ecc/plan-canvas`. When `ECC_PLAN_CANVAS_STATE_DIR` is set, it overrides that directory.
 
 ## Examples
 
 **Plan approval flow** — `/plan` writes
-`.claude/plans/notifications.plan.md` and must WAIT for confirmation:
+`plans/notifications.plan.md` and must WAIT for confirmation:
 
 ```bash
-ecc-plan-canvas open .claude/plans/notifications.plan.md
-ecc-plan-canvas await .claude/plans/notifications.plan.md
+ecc-plan-canvas open plans/notifications.plan.md
+ecc-plan-canvas await plans/notifications.plan.md
 # → {"status":"feedback","items":[{"kind":"verdict","verdict":"approve"}]}
-ecc-plan-canvas end .claude/plans/notifications.plan.md
+ecc-plan-canvas end plans/notifications.plan.md
 # plan is confirmed — begin implementation
 ```
 

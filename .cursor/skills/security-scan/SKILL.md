@@ -1,31 +1,30 @@
 ---
 name: security-scan
-description: Scan your Claude Code configuration (.claude/ directory) for security vulnerabilities, misconfigurations, and injection risks using AgentShield. Checks CLAUDE.md, settings.json, MCP servers, hooks, and agent definitions. Use when auditing a .claude/ directory — CLAUDE.md, settings.json, MCP servers, hooks, or agent definitions.
+description: Scan the Cursor project surface under `.cursor/` for security vulnerabilities, misconfigurations, and injection risks using AgentShield. Checks `.cursor/hooks.json`, `.cursor/mcp.json`, `.cursor/rules/`, and `.cursor/agents/`. Use when auditing that Cursor configuration.
 metadata:
   origin: ECC
 ---
 
 # Security Scan Skill
 
-Audit your Claude Code configuration for security issues using [AgentShield](https://github.com/affaan-m/agentshield).
+Audit the Cursor configuration under `.cursor/` for security issues using [AgentShield](https://github.com/affaan-m/agentshield).
 
 ## When to Activate
 
-- Setting up a new Claude Code project
-- After modifying `.claude/settings.json`, `CLAUDE.md`, or MCP configs
-- Before committing configuration changes
-- When onboarding to a new repository with existing Claude Code configs
+- Setting up ECC in a Cursor project
+- After modifying `.cursor/hooks.json`, `.cursor/mcp.json`, `.cursor/rules/`, or `.cursor/agents/`
+- Before committing those configuration changes
+- When onboarding to a repository that already has a `.cursor/` surface
 - Periodic security hygiene checks
 
 ## What It Scans
 
-| File | Checks |
+| Path | Checks |
 |------|--------|
-| `CLAUDE.md` | Hardcoded secrets, auto-run instructions, prompt injection patterns |
-| `settings.json` | Overly permissive allow lists, missing deny lists, dangerous bypass flags |
-| `mcp.json` | Risky MCP servers, hardcoded env secrets, npx supply chain risks |
-| `hooks/` | Command injection via interpolation, data exfiltration, silent error suppression |
-| `agents/*.md` | Unrestricted tool access, prompt injection surface, missing model specs |
+| `.cursor/hooks.json` | Command injection via interpolation, data exfiltration, silent error suppression |
+| `.cursor/mcp.json` | Risky MCP servers, hardcoded env secrets, npx supply chain risks |
+| `.cursor/rules/` | Hardcoded secrets, auto-run instructions, prompt injection patterns |
+| `.cursor/agents/` | Prompts that handle untrusted content without defenses |
 
 ## Prerequisites
 
@@ -39,40 +38,40 @@ npx ecc-agentshield --version
 npm install -g ecc-agentshield
 
 # Or run directly via npx (no install needed)
-npx ecc-agentshield scan .
+npx ecc-agentshield scan --path .cursor
 ```
 
 ## Usage
 
 ### Basic Scan
 
-Run against the current project's `.claude/` directory:
+Default the scan to this project's `.cursor/` directory (`hooks.json`, `mcp.json`, `rules/`, and `agents/`):
 
 ```bash
-# Scan current project
-npx ecc-agentshield scan
+# Scan the Cursor surface
+npx ecc-agentshield scan --path .cursor
 
-# Scan a specific path
-npx ecc-agentshield scan --path /path/to/.claude
+# Scan a specific path when one is named
+npx ecc-agentshield scan --path /path/to/.cursor
 
 # Scan with minimum severity filter
-npx ecc-agentshield scan --min-severity medium
+npx ecc-agentshield scan --path .cursor --min-severity medium
 ```
 
 ### Output Formats
 
 ```bash
 # Terminal output (default) — colored report with grade
-npx ecc-agentshield scan
+npx ecc-agentshield scan --path .cursor
 
 # JSON — for CI/CD integration
-npx ecc-agentshield scan --format json
+npx ecc-agentshield scan --path .cursor --format json
 
 # Markdown — for documentation
-npx ecc-agentshield scan --format markdown
+npx ecc-agentshield scan --path .cursor --format markdown
 
 # HTML — self-contained dark-theme report
-npx ecc-agentshield scan --format html > security-report.html
+npx ecc-agentshield scan --path .cursor --format html > security-report.html
 ```
 
 ### Auto-Fix
@@ -80,22 +79,19 @@ npx ecc-agentshield scan --format html > security-report.html
 Apply safe fixes automatically (only fixes marked as auto-fixable):
 
 ```bash
-npx ecc-agentshield scan --fix
+npx ecc-agentshield scan --path .cursor --fix
 ```
 
 This will:
 - Replace hardcoded secrets with environment variable references
-- Tighten wildcard permissions to scoped alternatives
 - Never modify manual-only suggestions
 
 ### Opus 4.6 Deep Analysis
 
-Run the adversarial three-agent pipeline for deeper analysis:
+Run the adversarial three-agent pipeline for deeper analysis. `ANTHROPIC_API_KEY` must already be set in the environment. Do not write the key into a file.
 
 ```bash
-# Requires ANTHROPIC_API_KEY
-export ANTHROPIC_API_KEY=your-key
-npx ecc-agentshield scan --opus --stream
+npx ecc-agentshield scan --path .cursor --opus --stream
 ```
 
 This runs:
@@ -103,27 +99,14 @@ This runs:
 2. **Defender (Blue Team)** — recommends hardening
 3. **Auditor (Final Verdict)** — synthesizes both perspectives
 
-### Initialize Secure Config
-
-Scaffold a new secure `.claude/` configuration from scratch:
-
-```bash
-npx ecc-agentshield init
-```
-
-Creates:
-- `settings.json` with scoped permissions and deny list
-- `CLAUDE.md` with security best practices
-- `mcp.json` placeholder
-
 ### GitHub Action
 
-Add to your CI pipeline:
+Add to your CI pipeline. The default path is `.cursor/`:
 
 ```yaml
 - uses: affaan-m/agentshield@v1
   with:
-    path: '.'
+    path: '.cursor'
     min-severity: 'medium'
     fail-on-findings: true
 ```
@@ -141,20 +124,18 @@ Add to your CI pipeline:
 ## Interpreting Results
 
 ### Critical Findings (fix immediately)
-- Hardcoded API keys or tokens in config files
-- `Bash(*)` in the allow list (unrestricted shell access)
-- Command injection in hooks via `${file}` interpolation
-- Shell-running MCP servers
+- Hardcoded API keys or tokens in `.cursor/` config
+- Command injection in `.cursor/hooks.json` via `${file}` interpolation
+- Shell-running MCP servers in `.cursor/mcp.json`
 
 ### High Findings (fix before production)
-- Auto-run instructions in CLAUDE.md (prompt injection vector)
-- Missing deny lists in permissions
-- Agents with unnecessary Bash access
+- Auto-run instructions in `.cursor/rules/` (prompt injection vector)
+- MCP servers with hardcoded env values or unpinned `npx`
+- Agent prompts under `.cursor/agents/` that treat fetched content as instructions
 
 ### Medium Findings (recommended)
 - Silent error suppression in hooks (`2>/dev/null`, `|| true`)
-- Missing PreToolUse security hooks
-- `npx -y` auto-install in MCP server configs
+- `npx -y` auto-install in `.cursor/mcp.json`
 
 ### Info Findings (awareness)
 - Missing descriptions on MCP servers

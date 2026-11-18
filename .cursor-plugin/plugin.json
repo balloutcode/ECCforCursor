@@ -10,5 +10,6 @@
   "skills": "./.cursor/skills/",
   "agents": "./.cursor/agents/",
   "commands": "./.cursor/commands/",
-  "hooks": "./.cursor/hooks.json"
+  "hooks": "./.cursor/hooks.json",
+  "mcpServers": "./.cursor/mcp.json"
 }

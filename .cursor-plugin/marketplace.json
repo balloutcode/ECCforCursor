@@ -1,0 +1,22 @@
+{
+  "name": "ecc-for-cursor",
+  "owner": {
+    "name": "balloutcode"
+  },
+  "metadata": {
+    "description": "Cursor plugin fork of ECC 2.2.3",
+    "version": "2.2.3"
+  },
+  "plugins": [
+    {
+      "name": "ecc-for-cursor",
+      "source": ".",
+      "description": "Cursor-only install of ECC: rules, skills, agents, commands, and hooks for Cursor projects.",
+      "version": "2.2.3",
+      "license": "MIT",
+      "homepage": "https://github.com/balloutcode/ECCforCursor",
+      "repository": "https://github.com/balloutcode/ECCforCursor",
+      "keywords": ["cursor", "ecc", "skills", "rules", "agents", "hooks"]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ Run AgentShield against the current project or a target path, then turn the find
 
 `/security-scan [path] [--format text|json|markdown|html] [--min-severity low|medium|high|critical] [--fix]`
 
-- `path` (optional): defaults to the current project. Use a `.claude/` path, a repo root, or a checked-in template directory.
+- `path` (optional): defaults to `.cursor/` (`hooks.json`, `mcp.json`, `rules/`, `agents/`). Pass another path only when the user names one.
 - `--format`: output format. Use `json` for CI, `markdown` for handoffs, and `html` for standalone review reports.
 - `--min-severity`: filters lower-priority findings.
 - `--fix`: applies only AgentShield fixes explicitly marked as safe and auto-fixable.
@@ -22,13 +22,13 @@ Run AgentShield against the current project or a target path, then turn the find
 Prefer the packaged scanner:
 
 ```bash
-npx ecc-agentshield scan --path "${TARGET_PATH:-.}" --format text
+npx ecc-agentshield scan --path "${TARGET_PATH:-.cursor}" --format text
 ```
 
 For local AgentShield development, run from the AgentShield checkout:
 
 ```bash
-npm run scan -- --path "${TARGET_PATH:-.}" --format text
+npm run scan -- --path "${TARGET_PATH:-.cursor}" --format text
 ```
 
 Do not invent findings. Use AgentShield output as the source of truth and separate scanner facts from follow-up judgment.
@@ -36,11 +36,10 @@ Do not invent findings. Use AgentShield output as the source of truth and separa
 ## Review Checklist
 
 1. Identify active runtime findings first:
-   - hardcoded secrets
-   - broad permissions
-   - executable hooks
-   - MCP servers with shell, filesystem, remote transport, or unpinned `npx`
-   - agent prompts that handle untrusted content without defenses
+   - hardcoded secrets in `.cursor/`
+   - executable hooks in `.cursor/hooks.json`
+   - MCP servers in `.cursor/mcp.json` with shell, filesystem, remote transport, or unpinned `npx`
+   - agent prompts under `.cursor/agents/` that handle untrusted content without defenses
 2. Separate lower-confidence inventory:
    - docs examples
    - template examples
@@ -74,7 +73,7 @@ Use AgentShield in GitHub Actions for enforced gates:
 ```yaml
 - uses: affaan-m/agentshield@v1
   with:
-    path: "."
+    path: ".cursor"
     min-severity: "medium"
     fail-on-findings: true
 ```

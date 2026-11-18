@@ -3,6 +3,7 @@ const {
   hookEnabled,
   loadRuntimeModule,
   readStdin,
+  recordShellPolicyJudgment,
   runExistingHook,
   transformToClaude,
 } = require('./adapter');
@@ -179,10 +180,23 @@ readStdin().then(raw => {
 
   if (toolName === 'Bash' || toolName === 'PowerShell') {
     const shellInput = { ...claudeInput, tool_name: 'Bash' };
-    record(() => shellDecision(
-      originalCommand,
-      runNamed('pre-bash-dispatcher.js', JSON.stringify(shellInput), { timeout: 20000 })
-    ));
+    record(() => {
+      const decision = shellDecision(
+        originalCommand,
+        runNamed('pre-bash-dispatcher.js', JSON.stringify(shellInput), { timeout: 20000 })
+      );
+      if (hookEnabled('pre:bash:dispatcher', ['minimal', 'standard', 'strict'])) {
+        recordShellPolicyJudgment(
+          input.conversation_id || input.session_id || '',
+          originalCommand,
+          {
+            denied: decision.permission === 'deny',
+            stderr: decision.agent_message || '',
+          }
+        );
+      }
+      return decision;
+    });
   }
 
   if ((toolName === 'PowerShell' || commandLooksLikePowerShell(originalCommand))
@@ -231,6 +245,15 @@ readStdin().then(raw => {
     record(() => {
       const observe = loadRuntimeModule('scripts', 'hooks', 'observe-runner.js');
       return decisionFromRun(observe.run(claudeRaw, { hookId: 'pre:observe' }), originalCommand);
+    });
+  }
+
+  if (hookEnabled('pre:hookify-runtime', ['minimal', 'standard', 'strict'])) {
+    record(() => {
+      const hookify = loadRuntimeModule('scripts', 'hooks', 'hookify-runtime.js');
+      const result = hookify.run(claudeRaw, { cwd: input.cwd || process.cwd() });
+      if (result && result.stderr) console.error(result.stderr);
+      return decisionFromRun(result, originalCommand);
     });
   }
 

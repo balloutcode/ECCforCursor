@@ -2,6 +2,7 @@
 description: Review code for silent failures, swallowed errors, bad fallbacks, and missing error propagation.
 model: inherit
 tools: Read, Grep, Glob, Bash
+readonly: true
 ---
 
 ## Prompt Defense Baseline

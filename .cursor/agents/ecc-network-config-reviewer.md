@@ -2,6 +2,7 @@
 description: Reviews router and switch configurations for security, correctness, stale references, risky change-window commands, and missing operational guardrails.
 tools: Read, Grep
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline

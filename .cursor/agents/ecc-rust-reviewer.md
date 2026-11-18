@@ -2,6 +2,7 @@
 description: Expert Rust code reviewer specializing in ownership, lifetimes, error handling, unsafe usage, and idiomatic patterns. Use for all Rust code changes. MUST BE USED for Rust projects.
 tools: Read, Grep, Glob, Bash
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline

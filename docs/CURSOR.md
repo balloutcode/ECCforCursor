@@ -10,7 +10,7 @@
 
 ## Установка плагином
 
-Манифест — `.cursor-plugin/plugin.json`. Имя плагина — `ecc-for-cursor`. Поля взяты из [Plugins reference](https://cursor.com/docs/reference/plugins): правила, навыки, агенты, команды и хуки указаны путями внутри `.cursor/`.
+Манифест — `.cursor-plugin/plugin.json`. Имя плагина — `ecc-for-cursor`. Поля взяты из [Plugins reference](https://cursor.com/docs/reference/plugins): правила, навыки, агенты, команды и хуки указаны путями внутри `.cursor/`. Рядом лежит `.cursor-plugin/marketplace.json`: Customize импортирует этот репозиторий с GitHub как один плагин с корнем `.`.
 
 Когда плагин уже есть в маркетплейсе Cursor или в командном маркетплейсе:
 
@@ -123,7 +123,7 @@ model: inherit
 
 `inherit` берёт модель родительского агента. Если поля `name` нет, Cursor берёт идентификатор из имени файла: `ecc-planner`. В чате это `/ecc-planner`. Документированные поля субагента Cursor: `name`, `description`, `model`, `readonly`, `is_background`.
 
-Навык — каталог с `SKILL.md`. В шапке обязательны `name` и `description`; `name` совпадает с именем каталога. Cursor также умеет читать `.claude/skills/` и `~/.claude/skills/`. Этот форк навыки туда не кладёт: место навыков — `.cursor/skills/`.
+Навык — каталог с `SKILL.md`. В шапке обязательны `name` и `description`; `name` совпадает с именем каталога. Место навыков плагина — `.cursor/skills/`. Вложенный `.cursor/.agents/` не входит в манифест и в установку Cursor.
 
 Команды — markdown в `.cursor/commands/`. Это короткие точки входа. Основная поверхность workflows — навыки.
 
@@ -237,4 +237,4 @@ Cursor отправит его сам. У скрипта в `hooks.json` лим�
 | Агенты `.claude/agents/` и `model: opus` | `.cursor/agents/ecc-*.md` и `model: inherit` |
 | Память в `~/.claude` | `~/.cursor/ecc` |
 
-Повторная установка поверх Claude Code этому форку не нужна: каталога `.claude/` в поставке нет.
+Повторная установка поверх Claude Code этому форку не нужна: в поставке нет `CLAUDE.md` и каталога `.claude/`. Это инструкции Claude Code, манифест Cursor их не подключает.

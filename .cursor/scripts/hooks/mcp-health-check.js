@@ -86,8 +86,10 @@ function configPaths() {
   const home = os.homedir();
 
   return [
+    path.join(cwd, '.cursor', 'mcp.json'),
     path.join(cwd, '.claude.json'),
     path.join(cwd, '.claude', 'settings.json'),
+    path.join(home, '.cursor', 'mcp.json'),
     path.join(home, '.claude.json'),
     path.join(home, '.claude', 'settings.json')
   ];
@@ -582,11 +584,14 @@ async function probeServer(serverName, resolvedConfig) {
     // ~/.claude/settings.json) is always trusted regardless of cwd.
     const isHomeSource = src === pathMod.join(home, '.claude.json')
       || src === pathMod.join(home, '.claude', 'settings.json')
+      || src === pathMod.join(home, '.cursor', 'mcp.json')
       || src.startsWith(pathMod.join(home, '.claude') + pathMod.sep);
     if (!isHomeSource) {
       const isWorkspaceSource = src === pathMod.join(cwd, '.claude.json')
         || src === pathMod.join(cwd, '.claude', 'settings.json')
-        || src.startsWith(cwd + pathMod.sep + '.claude' + pathMod.sep);
+        || src === pathMod.join(cwd, '.cursor', 'mcp.json')
+        || src.startsWith(cwd + pathMod.sep + '.claude' + pathMod.sep)
+        || src.startsWith(cwd + pathMod.sep + '.cursor' + pathMod.sep);
       if (isWorkspaceSource && !/^(1|true|yes)$/i.test(String(process.env.ECC_MCP_ALLOW_WORKSPACE_PROBE || ''))) {
         return {
           ok: false,

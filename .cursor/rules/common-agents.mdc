@@ -20,6 +20,85 @@ Located in `.cursor/agents/`. Installed names start with `ecc-`.
 | ecc-refactor-cleaner | Dead code cleanup | Code maintenance |
 | ecc-doc-updater | Documentation | Updating docs |
 
+## Full roster
+
+Cursor loads every `ecc-*.md` file in `.cursor/agents/`. Filename is the agent id. `model: inherit`. Reviewers and other read-only agents set `readonly: true`.
+
+| File | Purpose |
+|------|---------|
+| `ecc-a11y-architect.md` | WCAG 2.2 accessibility architecture |
+| `ecc-agent-evaluator.md` | 5-axis quality scoring for agent output |
+| `ecc-architect.md` | System design and scalability |
+| `ecc-bengali-reviewer.md` | Bengali text review |
+| `ecc-build-error-resolver.md` | Fix build and type errors |
+| `ecc-chief-of-staff.md` | Multi-channel communication triage and drafting |
+| `ecc-code-architect.md` | Feature architecture blueprints from codebase patterns |
+| `ecc-code-explorer.md` | Execution path tracing and architecture mapping |
+| `ecc-code-reviewer.md` | Code quality and maintainability |
+| `ecc-code-simplifier.md` | Clarity-focused refinement without behavior change |
+| `ecc-comment-analyzer.md` | Comment accuracy, freshness, and rot risk |
+| `ecc-commit-reviewer.md` | Staged-diff review and commit message draft |
+| `ecc-conversation-analyzer.md` | Extract hook behaviors from session transcripts |
+| `ecc-cpp-build-resolver.md` | C and C++ build errors |
+| `ecc-cpp-reviewer.md` | C and C++ code review |
+| `ecc-csharp-reviewer.md` | C# and .NET async, nullability, and security |
+| `ecc-dart-build-resolver.md` | Dart and Flutter build and pub errors |
+| `ecc-database-reviewer.md` | PostgreSQL and Supabase schema and queries |
+| `ecc-django-build-resolver.md` | Django build, migration, and setup errors |
+| `ecc-django-reviewer.md` | Django, DRF, ORM, and migrations |
+| `ecc-doc-updater.md` | Documentation and codemaps |
+| `ecc-docs-lookup.md` | Documentation lookup via the context7 MCP server |
+| `ecc-e2e-runner.md` | End-to-end Playwright testing |
+| `ecc-fastapi-reviewer.md` | FastAPI async, Pydantic, and OpenAPI |
+| `ecc-flutter-reviewer.md` | Flutter and Dart widget and state review |
+| `ecc-fsharp-reviewer.md` | F# functional code review |
+| `ecc-gan-evaluator.md` | Test a running app and score it |
+| `ecc-gan-generator.md` | Implement features from a GAN spec |
+| `ecc-gan-planner.md` | Expand a prompt into a product specification |
+| `ecc-gdscript-reviewer.md` | GDScript and Godot 4 code review |
+| `ecc-go-build-resolver.md` | Go build errors |
+| `ecc-go-reviewer.md` | Go code review |
+| `ecc-harmonyos-app-resolver.md` | HarmonyOS ArkTS and ArkUI review |
+| `ecc-harness-optimizer.md` | Harness reliability, cost, and throughput |
+| `ecc-healthcare-reviewer.md` | Clinical safety, PHI, and CDSS accuracy |
+| `ecc-homelab-architect.md` | Home and small-lab network design |
+| `ecc-java-build-resolver.md` | Java, Maven, and Gradle build errors |
+| `ecc-java-reviewer.md` | Java and Spring Boot code review |
+| `ecc-kotlin-build-resolver.md` | Kotlin and Gradle build errors |
+| `ecc-kotlin-reviewer.md` | Kotlin, Android, and KMP review |
+| `ecc-loop-operator.md` | Autonomous loop execution and stall response |
+| `ecc-marketing-agent.md` | Campaign planning, copy, and content calendars |
+| `ecc-mle-reviewer.md` | Production ML pipeline review |
+| `ecc-network-architect.md` | Enterprise multi-site network architecture |
+| `ecc-network-config-reviewer.md` | Router and switch config review |
+| `ecc-network-troubleshooter.md` | OSI-layer connectivity and routing diagnosis |
+| `ecc-opensource-forker.md` | Fork a project and strip secrets |
+| `ecc-opensource-packager.md` | Open-source packaging boilerplate |
+| `ecc-opensource-sanitizer.md` | Verify a sanitized fork is release-ready |
+| `ecc-performance-optimizer.md` | Bottlenecks, bundle size, and memory leaks |
+| `ecc-php-reviewer.md` | PHP, PSR-12, and Eloquent review |
+| `ecc-planner.md` | Implementation planning |
+| `ecc-pr-test-analyzer.md` | Pull request test coverage quality |
+| `ecc-python-reviewer.md` | Python code review |
+| `ecc-pytorch-build-resolver.md` | PyTorch runtime, CUDA, and training errors |
+| `ecc-rag-pipeline-reviewer.md` | RAG retrieval, chunking, and evaluation |
+| `ecc-react-build-resolver.md` | React, Vite, Next.js, and webpack build errors |
+| `ecc-react-reviewer.md` | React and JSX code review |
+| `ecc-refactor-cleaner.md` | Dead code cleanup |
+| `ecc-ruby-reviewer.md` | Ruby and Rails code review |
+| `ecc-rust-build-resolver.md` | Rust build errors |
+| `ecc-rust-reviewer.md` | Rust code review |
+| `ecc-security-reviewer.md` | Vulnerability detection |
+| `ecc-seo-specialist.md` | Technical SEO, structured data, and Core Web Vitals |
+| `ecc-silent-failure-hunter.md` | Swallowed errors and missing propagation |
+| `ecc-spec-miner.md` | Brownfield spec extraction |
+| `ecc-swift-build-resolver.md` | Swift, Xcode, and SPM build errors |
+| `ecc-swift-reviewer.md` | Swift and iOS code review |
+| `ecc-tdd-guide.md` | Test-driven development |
+| `ecc-type-design-analyzer.md` | Type encapsulation and invariant design |
+| `ecc-typescript-reviewer.md` | TypeScript and JavaScript code review |
+| `ecc-vue-reviewer.md` | Vue Composition API and reactivity review |
+
 ## Immediate Agent Usage
 
 No user prompt needed:

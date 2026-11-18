@@ -5,8 +5,10 @@
  * then delegates to existing scripts/hooks/*.js
  */
 
+const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const MAX_STDIN_BYTES = 1024 * 1024;
@@ -227,6 +229,73 @@ function runExistingHook(scriptName, stdinData, options = {}) {
   }
 }
 
+const SHELL_POLICY_TTL_MS = 120000;
+
+function shellPolicyMarkerPath(sessionId, command) {
+  const key = crypto.createHash('sha256').update(JSON.stringify([
+    String(sessionId),
+    String(command),
+    process.cwd(),
+  ])).digest('hex');
+  return path.join(os.tmpdir(), 'ecc-cursor-shell-policy', `${key}.json`);
+}
+
+function recordShellPolicyJudgment(sessionId, command, judgment) {
+  const id = String(sessionId || '').trim();
+  if (!id) return;
+  const file = shellPolicyMarkerPath(id, command);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({
+    at: Date.now(),
+    denied: Boolean(judgment && judgment.denied),
+    stderr: String((judgment && judgment.stderr) || ''),
+  }));
+}
+
+function readShellPolicyJudgment(sessionId, command) {
+  const id = String(sessionId || '').trim();
+  if (!id) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(shellPolicyMarkerPath(id, command), 'utf8'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    if (Date.now() - Number(parsed.at) > SHELL_POLICY_TTL_MS) return null;
+    return {
+      denied: parsed.denied === true,
+      stderr: typeof parsed.stderr === 'string' ? parsed.stderr : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function interpretHookifyResult(result) {
+  if (!result || typeof result !== 'object') return null;
+  const stdout = typeof result.stdout === 'string' ? result.stdout : '';
+  if (!stdout || stdout === result.raw) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  const specific = parsed.hookSpecificOutput;
+  if (specific && specific.permissionDecision === 'deny') {
+    return {
+      deny: true,
+      message: String(specific.permissionDecisionReason || '').trim() || 'Blocked by Hookify',
+    };
+  }
+  if (parsed.decision === 'block' && typeof parsed.reason === 'string' && parsed.reason.trim()) {
+    return { deny: true, continuation: true, message: parsed.reason.trim() };
+  }
+  const context = specific && typeof specific.additionalContext === 'string'
+    ? specific.additionalContext.trim()
+    : '';
+  if (context) return { deny: false, message: context };
+  return null;
+}
+
 function hookEnabled(hookId, allowedProfiles = ['standard', 'strict']) {
   try {
     const { isHookEnabled } = loadRuntimeModule('scripts', 'lib', 'hook-flags.js');
@@ -249,4 +318,7 @@ module.exports = {
   createStopFormatTypecheckOptions,
   runExistingHook,
   hookEnabled,
+  recordShellPolicyJudgment,
+  readShellPolicyJudgment,
+  interpretHookifyResult,
 };

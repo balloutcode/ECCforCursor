@@ -1,6 +1,6 @@
 ---
 name: configure-ecc
-description: "Run the conversational ECC setup wizard inside the current harness: inventory the install, collect scope (user/project/local) and hook mode (off/minimal/standard/strict) in Claude Code, use Codex's native plugin lifecycle, or install the project surface under ./.kimi-code, then preview, apply, and verify. Use when installing, updating, reconfiguring, or repairing an ECC installation, changing hook profiles, or moving ECC between install scopes."
+description: "Install and reconfigure ECC for Cursor. The default path is install.ps1 or install.sh with --profile full --target cursor --enable-hooks. This wizard must not write .claude/ or settings.json. Claude Code, Codex, and Kimi are other products and out of scope for this fork. Use when installing, updating, reconfiguring, or repairing the Cursor ECC installation."
 metadata:
   origin: ECC
 ---
@@ -16,15 +16,45 @@ For a human-operated terminal, the canonical entry points are `ecc setup` and
 `npx ecc-universal setup`. Inside a harness, use the explicit non-interactive
 commands below instead.
 
-## Route by the current harness
+## Cursor: install this fork
 
-- In Claude Code, use the full scope-and-hook wizard below.
-- In Codex, use Codex's native plugin lifecycle. Do not offer Claude scopes or
-  map ECC's four Claude hook profiles onto Codex.
-- In Kimi, install the project surface under `./.kimi-code`. Kimi does not
-  provide ECC's Claude lifecycle-hook profiles.
-- If the harness is uncertain, state the detected evidence and ask which
-  harness to configure before running a mutating command.
+This fork's default route is Cursor. From the repository root, install the
+full profile and enable hooks. The wizard writes under `.cursor/`. It must
+not create a `.claude/` directory or a `settings.json` file.
+
+Windows (PowerShell):
+
+```powershell
+.\install.ps1 --profile full --target cursor --enable-hooks
+```
+
+macOS and Linux:
+
+```bash
+./install.sh --profile full --target cursor --enable-hooks
+```
+
+Confirm once before running the command. After it exits 0, verify
+`.cursor/hooks.json`, `.cursor/rules/`, `.cursor/agents/`, and
+`.cursor/skills/` are present, and that this run did not create `.claude/`
+or `settings.json`. Memory for the install is `ECC_AGENT_DATA_HOME`, which
+defaults to `~/.cursor/ecc`.
+
+## Other products (out of scope for this fork)
+
+Claude Code, Codex, and Kimi are other products. The sections below describe
+those products so this skill can still identify them. Do not use them to
+install this fork, and do not run them in a way that writes `.claude/` or
+`settings.json`.
+
+- Claude Code has a scope-and-hook wizard (`user | project | local`,
+  `off | minimal | standard | strict`). That wizard is not this fork's path.
+- Codex has its own plugin lifecycle. Do not map ECC's four Claude hook
+  profiles onto Codex.
+- Kimi installs a project surface under `./.kimi-code` and does not provide
+  ECC's Claude lifecycle-hook profiles.
+- If the harness is uncertain, state the detected evidence. For this
+  repository, choose Cursor.
 
 This skill is a post-install reconfiguration path. It cannot intercept or
 replace a provider's built-in first-install UI.

@@ -289,6 +289,64 @@ async function runTests() {
         fs.realpathSync(configPath),
         'Expected cwd .claude/settings.json config source'
       );
+      assert.ok(
+        fs.readFileSync(script, 'utf8').includes("path.join(cwd, '.cursor', 'mcp.json')"),
+        'configPaths should list the Cursor project mcp.json'
+      );
+      assert.ok(
+        fs.readFileSync(script, 'utf8').includes("path.join(home, '.cursor', 'mcp.json')"),
+        'configPaths should list the user Cursor mcp.json'
+      );
+    } finally {
+      cleanupTempDir(tempDir);
+    }
+  })) passed++; else failed++;
+
+  if (await asyncTest('probes a server declared only in .cursor/mcp.json', async () => {
+    const tempDir = createTempDir();
+    const homeDir = path.join(tempDir, 'home');
+    const projectConfig = path.join(tempDir, '.cursor', 'mcp.json');
+    const homeConfig = path.join(homeDir, '.cursor', 'mcp.json');
+    const statePath = path.join(tempDir, 'state.json');
+    const serverScript = path.join(tempDir, 'cursor-server.js');
+    try {
+      fs.mkdirSync(path.dirname(projectConfig), { recursive: true });
+      fs.mkdirSync(path.dirname(homeConfig), { recursive: true });
+      fs.mkdirSync(homeDir, { recursive: true });
+      fs.writeFileSync(serverScript, 'setInterval(() => {}, 1000);\n');
+      writeConfig(projectConfig, { mcpServers: { projcursor: createCommandConfig(serverScript) } });
+      const projectResult = runHook(
+        { tool_name: 'mcp__projcursor__list', tool_input: {} },
+        {
+          ECC_MCP_CONFIG_PATH: null,
+          ECC_MCP_HEALTH_STATE_PATH: statePath,
+          ECC_MCP_HEALTH_TIMEOUT_MS: '100',
+          ECC_MCP_ALLOW_WORKSPACE_PROBE: '1',
+          HOME: homeDir,
+          USERPROFILE: homeDir,
+        },
+        { cwd: tempDir }
+      );
+      assert.strictEqual(projectResult.code, 0, projectResult.stderr);
+      assert.strictEqual(fs.realpathSync(readState(statePath).servers.projcursor.source), fs.realpathSync(projectConfig));
+
+      fs.rmSync(statePath, { force: true });
+      const emptyDir = path.join(tempDir, 'empty');
+      fs.mkdirSync(emptyDir, { recursive: true });
+      writeConfig(homeConfig, { mcpServers: { homecursor: createCommandConfig(serverScript) } });
+      const homeResult = runHook(
+        { tool_name: 'mcp__homecursor__list', tool_input: {} },
+        {
+          ECC_MCP_CONFIG_PATH: null,
+          ECC_MCP_HEALTH_STATE_PATH: statePath,
+          ECC_MCP_HEALTH_TIMEOUT_MS: '100',
+          HOME: homeDir,
+          USERPROFILE: homeDir,
+        },
+        { cwd: emptyDir }
+      );
+      assert.strictEqual(homeResult.code, 0, homeResult.stderr);
+      assert.strictEqual(fs.realpathSync(readState(statePath).servers.homecursor.source), fs.realpathSync(homeConfig));
     } finally {
       cleanupTempDir(tempDir);
     }

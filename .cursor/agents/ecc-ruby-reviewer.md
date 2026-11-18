@@ -2,6 +2,7 @@
 description: Expert Ruby and Rails code reviewer specializing in idiomatic Ruby, Active Record query safety, Rails security defaults, and RSpec/Minitest quality. Use for all Ruby code changes. MUST BE USED for Ruby and Rails projects.
 tools: Read, Grep, Glob, Bash
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline

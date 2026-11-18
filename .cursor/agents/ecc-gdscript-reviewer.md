@@ -2,6 +2,7 @@
 description: Expert GDScript and Godot 4 code reviewer specializing in static typing, scene and node design, signals, lifecycle safety, resources, and performance. Use for all GDScript changes. MUST BE USED for Godot projects.
 tools: Read, Grep, Glob, Bash
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline

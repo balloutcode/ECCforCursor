@@ -278,38 +278,38 @@ function readRuleFile(filePath, directoryStat) {
   }
 }
 
-function loadRules(projectRoot, options = {}) {
+function loadRulesFromDirectory(projectRoot, relativeDir, options = {}) {
   const rules = [];
   const diagnostics = [];
   const excludedPaths = options.excludedPaths || new Set();
-  const rulesDir = path.join(path.resolve(projectRoot), '.claude');
+  const rulesDir = path.join(path.resolve(projectRoot), relativeDir);
   let entries;
   let directoryStat;
   try {
     directoryStat = fs.lstatSync(rulesDir, { bigint: true });
     if (directoryStat.isSymbolicLink() || !directoryStat.isDirectory()) {
-      return { rules, diagnostics: [diagnostic('.claude', 'rule directory must be a real directory')] };
+      return { rules, diagnostics: [diagnostic(relativeDir, 'rule directory must be a real directory')] };
     }
     entries = fs.readdirSync(rulesDir, { withFileTypes: true });
   } catch (error) {
     if (error && error.code === 'ENOENT') return { rules, diagnostics };
-    return { rules, diagnostics: [diagnostic('.claude', error.message)] };
+    return { rules, diagnostics: [diagnostic(relativeDir, error.message)] };
   }
 
   const candidates = entries
     .filter(entry => /^hookify\.[^/\\]+\.local\.md$/.test(entry.name))
     .sort((left, right) => left.name.localeCompare(right.name));
   const eligibleCandidates = candidates.filter(entry => (
-    !excludedPaths.has(normalizeTrackedPath(path.join('.claude', entry.name)))
+    !excludedPaths.has(normalizeTrackedPath(path.join(relativeDir, entry.name)))
   ));
   if (eligibleCandidates.length !== candidates.length) {
     diagnostics.push(diagnostic(
-      '.claude',
+      relativeDir,
       'tracked local rules require explicit approval via ECC_HOOKIFY_ALLOW_TRACKED=1'
     ));
   }
   if (eligibleCandidates.length > MAX_RULES) {
-    diagnostics.push(diagnostic('.claude', 'only the first ' + MAX_RULES + ' Hookify rules are loaded'));
+    diagnostics.push(diagnostic(relativeDir, 'only the first ' + MAX_RULES + ' Hookify rules are loaded'));
   }
   for (const entry of eligibleCandidates.slice(0, MAX_RULES)) {
     try {
@@ -318,6 +318,17 @@ function loadRules(projectRoot, options = {}) {
     } catch (error) {
       diagnostics.push(diagnostic(entry.name, error.message));
     }
+  }
+  return { rules, diagnostics };
+}
+
+function loadRules(projectRoot, options = {}) {
+  const rules = [];
+  const diagnostics = [];
+  for (const relativeDir of ['.cursor', '.claude']) {
+    const loaded = loadRulesFromDirectory(projectRoot, relativeDir, options);
+    rules.push(...loaded.rules);
+    diagnostics.push(...loaded.diagnostics);
   }
   return { rules, diagnostics };
 }
@@ -336,7 +347,9 @@ function listTrackedRuleFiles(projectRoot, env = process.env) {
   if (!isInsideGitWorktree(projectRoot)) return { files: new Set(), error: '' };
   const result = spawnSync(
     'git',
-    ['-C', projectRoot, 'ls-files', '-z', '--', ':(icase,glob).claude/hookify.*.local.md'],
+    ['-C', projectRoot, 'ls-files', '-z', '--',
+      ':(icase,glob).cursor/hookify.*.local.md',
+      ':(icase,glob).claude/hookify.*.local.md'],
     {
       encoding: 'utf8',
       env,
@@ -379,7 +392,7 @@ function loadTrustedRules(projectRoot, env) {
 }
 
 function resolveProjectRoot(cwd, env) {
-  const configured = String(env.CLAUDE_PROJECT_DIR || '').trim();
+  const configured = String(env.CLAUDE_PROJECT_DIR || env.CURSOR_PROJECT_DIR || '').trim();
   return path.resolve(configured || cwd || process.cwd());
 }
 

@@ -2,6 +2,7 @@
 const {
   readStdin,
   hookEnabled,
+  readShellPolicyJudgment,
   runExistingHook,
   transformToClaude,
 } = require('./adapter');
@@ -25,7 +26,6 @@ readStdin({ includeMetadata: true })
       console.error(truncated
         ? '[Cursor Hook] stdin exceeded the safety limit; suppressing truncated input'
         : '[Cursor Hook] stdin read failed; suppressing untrusted input');
-      process.stdout.write(JSON.stringify({ permission: 'allow' }));
       return;
     }
 
@@ -39,14 +39,32 @@ readStdin({ includeMetadata: true })
         input = {};
         cmd = String(raw || '');
       }
-      // Hook-bypass, tmux, push, and GateGuard run once from preToolUse,
-      // which can rewrite the command. This event only returns a permission
-      // decision. Dev-server blocking is not in the bash dispatcher.
+      // Dev-server blocking is not in the bash dispatcher.
       if (hookEnabled('pre:bash:dev-server-block', ['standard', 'strict']) && process.platform !== 'win32') {
         const claudeInput = transformToClaude(input, {
           tool_input: { command: cmd },
         });
         runExistingHook('pre-bash-dev-server-block.js', JSON.stringify(claudeInput));
+      }
+      // Shell policy runs once. preToolUse owns the bash dispatcher (deny and
+      // rewrite). This event exits 2 for the same deny without calling that
+      // dispatcher again when a judgment for this session command already exists.
+      if (hookEnabled('pre:bash:block-no-verify', ['minimal', 'standard', 'strict'])) {
+        const sessionId = String(input.conversation_id || input.session_id || '');
+        const prior = readShellPolicyJudgment(sessionId, cmd);
+        if (prior) {
+          if (prior.denied) {
+            const reason = prior.stderr.trim() || 'Blocked by ECC pre-bash checks';
+            process.stderr.write(reason.endsWith('\n') ? reason : `${reason}\n`);
+            process.exit(2);
+          }
+        } else {
+          const cursorInput = input && typeof input === 'object' ? input : { command: cmd };
+          const claudeInput = transformToClaude(cursorInput, {
+            tool_input: { command: cmd },
+          });
+          runExistingHook('block-no-verify.js', JSON.stringify(claudeInput));
+        }
       }
     } catch {
       // noop

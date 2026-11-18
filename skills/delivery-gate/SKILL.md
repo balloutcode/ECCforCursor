@@ -1,14 +1,14 @@
 ---
 name: delivery-gate
-description: Stop hook that blocks Claude from finishing until quality checks pass. Detects rationalization patterns (surface text heuristics), stale learning logs (filesystem mtime), and low disk space. Complements self-audit by mechanically enforcing learning capture habits. Use when Claude should be mechanically blocked from declaring work finished before quality checks and learning capture actually pass.
+description: Stop hook that blocks the agent from finishing until quality checks pass. Detects rationalization patterns (surface text heuristics), stale learning logs (filesystem mtime), and low disk space. Complements self-audit by mechanically enforcing learning capture habits. Use when the Cursor stop hook should block a finished turn before quality checks and learning capture actually pass.
 metadata:
   version: 1.1.1
   origin: ECC
 ---
 
-# Delivery Gate — Mechanical Quality Gate for Claude Code
+# Delivery Gate — Mechanical Quality Gate
 
-A **Stop hook** that checks three things before Claude can finish a session, using only **deterministic checks** — file modification timestamps, disk usage, and regex patterns on the transcript text. No AI inference.
+A **Stop hook** that checks three things before the agent can finish a session, using only **deterministic checks** — file modification timestamps, disk usage, and regex patterns on the transcript text. No AI inference.
 
 This is distinct from reasoning gates (like `self-audit`): delivery-gate checks machine-verifiable facts; self-audit checks output quality across four reasoning dimensions. Together they form defense in depth:
 - **delivery-gate**: "Was the learning library touched today? Is disk space safe?"
@@ -28,43 +28,23 @@ This is the same pattern as CI pipeline gates — automated, deterministic check
 
 Rationalization detection warns about patterns like "skip tests for now" and "pre-existing bug" — surface signals that thinking may have been cut short. It never blocks on its own, because regex heuristics can false-positive. The blocking conditions are: disk critical (any session), or, on a complex task (>=3 Edit/Write calls), `>=3 learning libs stale` OR `growth-log` specifically stale. If the project memory directory does not exist, the learning-library checks are skipped: the hook only warns that it cannot verify learning capture, and a complex task is not blocked (the disk checks still apply).
 
-The hook blocks a given Stop at most once. When Claude Code re-runs it with `stop_hook_active: true` (Claude already continued once because of this hook), it exits 0, so a condition the agent cannot fix (such as low disk space) cannot trap the session in an endless loop.
+The hook blocks a given Stop at most once. When it runs again with `stop_hook_active: true` (the agent already continued once because of this hook), it exits 0, so a condition the agent cannot fix (such as low disk space) cannot trap the session in an endless loop.
 
 ## Why
 
-Claude Code's built-in checks cover code quality (build → type → lint → test). But there's a different failure mode: the agent produces working code while the **session hygiene was neglected** — learning not captured, rationalized shortcuts, disk running out silently.
+Build, type, lint, and test checks cover code quality. A different failure mode remains: the agent produces working code while the **session hygiene was neglected** — learning not captured, rationalized shortcuts, disk running out silently.
 
 Over many sessions of "ship and forget," the human hasn't grown. This hook enforces the habit: complex task → must touch learning libraries.
 
 ## Install
 
-From the ECC repository root. Claude Code manual install only. Do not copy hooks into `~/.claude` from this Cursor project; Cursor hooks stay in `.cursor/hooks.json`.
+When ECC hooks are installed for Cursor, this check runs from the Cursor stop hook.
 
-Claude Code example only — do not run this from Cursor:
-
-```bash
-mkdir -p ~/.claude/scripts
-cp skills/delivery-gate/hooks/quality-gate.py ~/.claude/scripts/
-```
-
-Add to Claude Code's `~/.claude/settings.json` (do not create that file here):
-```json
-{
-  "hooks": {
-    "Stop": [{
-      "hooks": [{
-        "type": "command",
-        "command": "python3 ~/.claude/scripts/quality-gate.py",
-        "timeout": 5
-      }]
-    }]
-  }
-}
-```
+Memory for the learning-library checks is `ECC_AGENT_DATA_HOME`, which defaults to `~/.cursor/ecc`.
 
 ## Learning Libraries
 
-Create these files in your project's memory directory (`~/.claude/projects/<encoded-project-path>/memory/`, where every non-alphanumeric character of the project path becomes `-`). The hook checks which of them were updated today:
+Create these files under `ECC_AGENT_DATA_HOME` (default `~/.cursor/ecc`). The hook checks which of them were updated today:
 
 ```
 memory/

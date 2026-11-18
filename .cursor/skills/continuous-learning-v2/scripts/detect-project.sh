@@ -14,7 +14,7 @@
 #   PROJECT_ID, PROJECT_NAME, PROJECT_ROOT, PROJECT_DIR
 #
 # Detection priority:
-#   1. CLAUDE_PROJECT_DIR env var (if set)
+#   1. CLAUDE_PROJECT_DIR, otherwise CURSOR_PROJECT_DIR (if set)
 #   2. git remote URL (hashed for uniqueness across machines)
 #   3. git repo root path (fallback, machine-specific)
 #   4. "global" (no project context detected)
@@ -105,20 +105,25 @@ _clv2_detect_project() {
     return 0
   fi
 
-  # 1. Try CLAUDE_PROJECT_DIR env var (explicit override)
-  if [ -n "$CLAUDE_PROJECT_DIR" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
+  # 1. Explicit project dir: CLAUDE_PROJECT_DIR, otherwise CURSOR_PROJECT_DIR.
+  local explicit_project_dir="${CLAUDE_PROJECT_DIR:-}"
+  if [ -z "$explicit_project_dir" ]; then
+    explicit_project_dir="${CURSOR_PROJECT_DIR:-}"
+  fi
+  if [ -n "$explicit_project_dir" ] && [ -d "$explicit_project_dir" ]; then
     if command -v git &>/dev/null; then
-      project_root=$(git -C "$CLAUDE_PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || true)
+      project_root=$(git -C "$explicit_project_dir" rev-parse --show-toplevel 2>/dev/null || true)
       if [ -n "$project_root" ]; then
         source_hint="env"
       fi
     fi
-    # Non-git directory explicitly pointed at by CLAUDE_PROJECT_DIR: honor it as
-    # a project root (path-hash identity) rather than collapsing to the shared
-    # `global` bucket. Gated on the explicit env var so an arbitrary non-git cwd
-    # never becomes a "project" — priority 2 below stays git-only on purpose.
+    # Non-git directory explicitly pointed at by CLAUDE_PROJECT_DIR or
+    # CURSOR_PROJECT_DIR: honor it as a project root (path-hash identity)
+    # rather than collapsing to the shared `global` bucket. Gated on the
+    # explicit env var so an arbitrary non-git cwd never becomes a "project"
+    # — priority 2 below stays git-only on purpose.
     if [ -z "$project_root" ]; then
-      project_root=$(cd "$CLAUDE_PROJECT_DIR" 2>/dev/null && pwd -P)
+      project_root=$(cd "$explicit_project_dir" 2>/dev/null && pwd -P)
       if [ -n "$project_root" ]; then
         source_hint="env-nogit"
       fi

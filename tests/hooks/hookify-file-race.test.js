@@ -16,7 +16,7 @@ const ruleText = name => '---\nname: ' + name + '\nevent: bash\naction: block\np
 function fixture(t, options = {}) {
   const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'ecc-hookify-race-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const directory = path.join(root, '.claude');
+  const directory = path.join(root, '.cursor');
   fs.mkdirSync(directory);
   const file = path.join(directory, 'hookify.race.local.md');
   fs.writeFileSync(file, ruleText('trusted'));

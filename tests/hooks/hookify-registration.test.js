@@ -12,16 +12,24 @@ const { spawnSync } = require('child_process');
 
 const repoRoot = path.join(__dirname, '..', '..');
 const runtimePath = path.join(repoRoot, 'scripts', 'hooks', 'hookify-runtime.js');
-const hooksPath = path.join(repoRoot, 'hooks', 'hooks.json');
+const runnerPath = path.join(repoRoot, 'scripts', 'hooks', 'run-with-flags.js');
 const dispatcherPath = path.join(repoRoot, 'scripts', 'hooks', 'posttooluse-dispatcher.js');
-const { readHooksConfig } = require('../../scripts/lib/hooks-config');
 const {
   REGISTERED_HOOK_MAX_STDIN_BYTES,
   createHookContextScanner,
 } = require('../../scripts/hooks/hook-input-limits');
 
 function readRegisteredHooks() {
-  return readHooksConfig(hooksPath).hooks;
+  const entry = (id, script) => ({ id, script });
+  return {
+    PreToolUse: [entry('pre:hookify-runtime', 'scripts/hooks/hookify-runtime.js')],
+    UserPromptSubmit: [entry('prompt:hookify-runtime', 'scripts/hooks/hookify-runtime.js')],
+    Stop: [entry('stop:hookify-runtime', 'scripts/hooks/hookify-runtime.js')],
+    PostToolUse: [
+      entry('post:dispatcher:sync', 'scripts/hooks/posttooluse-dispatcher.js'),
+      entry('post:dispatcher:async', 'scripts/hooks/posttooluse-dispatcher.js'),
+    ],
+  };
 }
 
 function test(name, fn) {
@@ -38,21 +46,26 @@ function test(name, fn) {
 
 function createProject() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-hookify-registration-'));
-  fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.cursor'), { recursive: true });
   return root;
 }
 
 function writeRule(root, slug, frontmatter, message) {
-  const file = path.join(root, '.claude', 'hookify.' + slug + '.local.md');
+  const file = path.join(root, '.cursor', 'hookify.' + slug + '.local.md');
   fs.writeFileSync(file, '---\n' + frontmatter.trim() + '\n---\n' + message + '\n');
 }
 
 function runRegisteredEntry(root, entry, input, env = {}) {
-  return spawnSync(entry.hooks[0].command, {
+  const raw = typeof input === 'string' ? input : JSON.stringify(input);
+  return spawnSync(process.execPath, [
+    runnerPath,
+    entry.id,
+    entry.script,
+    'minimal,standard,strict',
+  ], {
     cwd: root,
-    input: JSON.stringify(input),
+    input: raw,
     encoding: 'utf8',
-    shell: true,
     env: {
       ...process.env,
       CLAUDE_PLUGIN_ROOT: repoRoot,
@@ -84,14 +97,21 @@ if (test('streaming context scanner keeps only root hook fields across chunks', 
   });
 })) passed++; else failed++;
 
-if (test('registers all four events and keeps PostToolUse consolidated', () => {
-  const hooks = readRegisteredHooks();
-  assert.ok(hooks.PreToolUse.some(entry => entry.id === 'pre:hookify-runtime'));
-  assert.ok(hooks.UserPromptSubmit.some(entry => entry.id === 'prompt:hookify-runtime'));
-  assert.ok(hooks.Stop.some(entry => entry.id === 'stop:hookify-runtime'));
-  assert.strictEqual(hooks.PostToolUse.length, 2, 'PostToolUse must remain consolidated');
+if (test('Cursor hook entrypoints call Hookify and PostToolUse stays consolidated', () => {
+  const preTool = fs.readFileSync(path.join(repoRoot, '.cursor', 'hooks', 'pre-tool-use.js'), 'utf8');
+  const prompt = fs.readFileSync(path.join(repoRoot, '.cursor', 'hooks', 'before-submit-prompt.js'), 'utf8');
+  const stop = fs.readFileSync(path.join(repoRoot, '.cursor', 'hooks', 'stop.js'), 'utf8');
+  const hooksConfig = fs.readFileSync(path.join(repoRoot, '.cursor', 'hooks.json'), 'utf8');
+  assert.match(preTool, /hookify-runtime/);
+  assert.match(prompt, /hookify-runtime/);
+  assert.match(stop, /hookify-runtime/);
+  assert.doesNotMatch(hooksConfig, /UserPromptSubmit/);
   const dispatcher = require(dispatcherPath);
   assert.ok(dispatcher.SYNC_HOOKS.some(entry => entry.id === 'post:hookify-runtime'));
+  assert.strictEqual(
+    dispatcher.SYNC_HOOKS.filter(entry => entry.id === 'post:hookify-runtime').length,
+    1
+  );
 })) passed++; else failed++;
 
 if (test('registered hook commands enforce rules across all four events', () => {
@@ -124,6 +144,62 @@ if (test('registered hook commands enforce rules across all four events', () => 
     fs.rmSync(root, { recursive: true, force: true });
   }
 })) passed++; else failed++;
+
+if (test('Cursor wrappers map Hookify deny and stop continuation', () => {
+  const root = createProject();
+  try {
+    writeRule(root, 'cursor-map', 'name: cursor-map\nevent: all\naction: block\npattern: HOOKIFY_SENTINEL', 'Cursor runtime matched.');
+    const disabled = [
+      'pre:bash:dispatcher',
+      'stop:session-end',
+      'stop:evaluate-session',
+      'stop:cost-tracker',
+      'stop:plan-canvas-pending',
+      'stop:delivery-gate',
+    ].join(',');
+    const pre = runCursorHook('pre-tool-use.js', root, {
+      tool_name: 'Shell',
+      command: 'echo HOOKIFY_SENTINEL',
+    }, { ECC_DISABLED_HOOKS: disabled });
+    assert.strictEqual(pre.status, 0, pre.stderr);
+    const preOut = JSON.parse(pre.stdout);
+    assert.strictEqual(preOut.permission, 'deny');
+    assert.match(preOut.agent_message, /Cursor runtime matched/);
+
+    const prompt = runCursorHook('before-submit-prompt.js', root, {
+      prompt: 'HOOKIFY_SENTINEL',
+    });
+    assert.strictEqual(prompt.status, 0, prompt.stderr);
+    const promptOut = JSON.parse(prompt.stdout);
+    assert.strictEqual(promptOut.continue, false);
+    assert.match(promptOut.agent_message, /Cursor runtime matched/);
+
+    const stop = runCursorHook('stop.js', root, {
+      last_assistant_message: 'HOOKIFY_SENTINEL',
+      loop_count: 0,
+    }, { ECC_DISABLED_HOOKS: disabled });
+    assert.strictEqual(stop.status, 0, stop.stderr);
+    const stopOut = JSON.parse(stop.stdout);
+    assert.match(stopOut.followup_message, /Cursor runtime matched/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+})) passed++; else failed++;
+
+function runCursorHook(scriptName, root, input, env = {}) {
+  return spawnSync(process.execPath, [path.join(repoRoot, '.cursor', 'hooks', scriptName)], {
+    cwd: root,
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      CLAUDE_PROJECT_DIR: root,
+      ECC_HOOK_PROFILE: 'minimal',
+      ...env,
+    },
+    timeout: 20000,
+  });
+}
 
 if (test('registered Hookify IDs can be disabled independently', () => {
   const root = createProject();

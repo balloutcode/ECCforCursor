@@ -28,12 +28,12 @@ function test(name, fn) {
 
 function createProject() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-hookify-'));
-  fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.cursor'), { recursive: true });
   return root;
 }
 
 function writeRule(root, slug, frontmatter, message = 'Hookify policy matched.') {
-  const file = path.join(root, '.claude', 'hookify.' + slug + '.local.md');
+  const file = path.join(root, '.cursor', 'hookify.' + slug + '.local.md');
   fs.writeFileSync(file, '---\n' + frontmatter.trim() + '\n---\n' + message + '\n');
   return file;
 }
@@ -524,7 +524,7 @@ if (test('an all-event wildcard can match a Stop payload with no optional text',
 if (test('fails open on malformed YAML, invalid regex, and unsupported operators', () => {
   const root = createProject();
   try {
-    fs.writeFileSync(path.join(root, '.claude', 'hookify.bad-yaml.local.md'), '---\nname: [\n---\nBad YAML');
+    fs.writeFileSync(path.join(root, '.cursor', 'hookify.bad-yaml.local.md'), '---\nname: [\n---\nBad YAML');
     writeRule(root, 'bad-regex', 'name: bad-regex\nevent: bash\npattern: "("', 'Invalid regex');
     writeRule(
       root,
@@ -670,7 +670,7 @@ if (test('caps rule files and emitted messages without producing invalid JSON', 
   const root = createProject();
   try {
     fs.writeFileSync(
-      path.join(root, '.claude', 'hookify.oversized.local.md'),
+      path.join(root, '.cursor', 'hookify.oversized.local.md'),
       '---\nname: oversized\nevent: bash\npattern: .*\n---\n' + 'x'.repeat(runtime.MAX_RULE_BYTES + 1)
     );
     writeRule(root, 'long-message', 'name: long-message\nevent: bash\npattern: .*', 'm'.repeat(runtime.MAX_MESSAGE_CHARS * 2));

@@ -26,12 +26,12 @@ function test(name, fn) {
 
 function createProject(prefix = 'ecc-hookify-security-') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.cursor'), { recursive: true });
   return root;
 }
 
 function writeRule(root, slug, frontmatter, message = 'Hookify policy matched.') {
-  const file = path.join(root, '.claude', 'hookify.' + slug + '.local.md');
+  const file = path.join(root, '.cursor', 'hookify.' + slug + '.local.md');
   fs.writeFileSync(file, '---\n' + frontmatter.trim() + '\n---\n' + message + '\n');
   return file;
 }
@@ -54,14 +54,14 @@ console.log('\u2500'.repeat(50));
 let passed = 0;
 let failed = 0;
 
-if (test('does not follow rule symlinks outside the project .claude directory', () => {
+if (test('does not follow rule symlinks outside the project .cursor directory', () => {
   if (process.platform === 'win32') return;
   const root = createProject();
   const outside = createProject('ecc-hookify-outside-');
   try {
     const externalRule = path.join(outside, 'external.md');
     fs.writeFileSync(externalRule, '---\nname: outside\nevent: bash\naction: block\npattern: .*\n---\nMust not load.\n');
-    fs.symlinkSync(externalRule, path.join(root, '.claude', 'hookify.link.local.md'));
+    fs.symlinkSync(externalRule, path.join(root, '.cursor', 'hookify.link.local.md'));
     const result = runHook(root, { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'pwd' } });
     assert.strictEqual(result.stdout, result.raw);
     assert.match(result.stderr, /symbolic link/);
@@ -89,23 +89,25 @@ if (test('rejects Git-tracked local rules unless explicitly approved', () => {
   }
 })) passed++; else failed++;
 
-if (test('detects tracked rules through case-variant .claude paths', () => {
+if (test('detects tracked rules through case-variant .cursor and optional .claude paths', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-hookify-case-trust-'));
   try {
     assert.strictEqual(spawnSync('git', ['init', '-q'], { cwd: root }).status, 0);
-    const trackedDir = path.join(root, '.CLAUDE');
-    fs.mkdirSync(trackedDir);
-    fs.writeFileSync(
-      path.join(trackedDir, 'hookify.case.local.md'),
-      '---\nname: case-rule\nevent: bash\naction: block\npattern: .*\n---\nTracked data.\n'
-    );
+    const cursorDir = path.join(root, '.CURSOR');
+    const claudeDir = path.join(root, '.CLAUDE');
+    fs.mkdirSync(cursorDir);
+    fs.mkdirSync(claudeDir);
+    const body = '---\nname: case-rule\nevent: bash\naction: block\npattern: .*\n---\nTracked data.\n';
+    fs.writeFileSync(path.join(cursorDir, 'hookify.case.local.md'), body);
+    fs.writeFileSync(path.join(claudeDir, 'hookify.case.local.md'), body);
     assert.strictEqual(
-      spawnSync('git', ['add', '-f', '.CLAUDE/hookify.case.local.md'], { cwd: root }).status,
+      spawnSync('git', ['add', '-f', '.CURSOR/hookify.case.local.md', '.CLAUDE/hookify.case.local.md'], { cwd: root }).status,
       0
     );
 
     const tracked = runtime.listTrackedRuleFiles(root);
     assert.strictEqual(tracked.error, '');
+    assert.ok(tracked.files.has('.cursor/hookify.case.local.md'));
     assert.ok(tracked.files.has('.claude/hookify.case.local.md'));
   } finally {
     removeProject(root);

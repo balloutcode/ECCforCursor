@@ -2,6 +2,7 @@
 description: Production machine-learning engineering reviewer for data contracts, feature pipelines, training reproducibility, offline/online evaluation, model serving, monitoring, and rollback. Use when ML, MLOps, model training, inference, feature store, or evaluation code changes.
 tools: Read, Grep, Glob, Bash
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline

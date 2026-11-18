@@ -417,6 +417,13 @@ function runTests() {
       )),
       'Cursor installs should not create .cursor/AGENTS.md'
     );
+    assert.ok(
+      !plan.operations.some(operation => (
+        normalizedRelativePath(operation.sourceRelativePath) === '.agents'
+        || operation.destinationPath === path.join(projectRoot, '.cursor', '.agents')
+      )),
+      'Cursor installs should not nest the .agents tree under .cursor'
+    );
   })) passed++; else failed++;
 
   if (test('plans cursor agents with ecc-prefixed filenames to avoid agent collisions', () => {

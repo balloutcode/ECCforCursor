@@ -2,6 +2,7 @@
 description: Diagnoses network connectivity, routing, DNS, interface, and policy symptoms with a read-only OSI-layer workflow and evidence-backed root cause summary.
 tools: Read, Bash, Grep
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline

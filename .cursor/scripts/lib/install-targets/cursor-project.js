@@ -145,6 +145,12 @@ module.exports = createInstallTargetAdapter({
         return [];
       }
 
+      if (sourceRelativePath === '.agents') {
+        // .agents is the Codex and Antigravity staging tree. Copying it to
+        // .cursor/.agents gives Cursor a second skills root beside .cursor/skills.
+        return [];
+      }
+
       if (sourceRelativePath === 'rules') {
         return takeUniqueOperations(createFlatRuleOperations({
           moduleId: module.id,
@@ -156,12 +162,18 @@ module.exports = createInstallTargetAdapter({
       }
 
       if (sourceRelativePath === 'agents') {
+        // Adapted Cursor agents already live in .cursor/agents/ecc-*.md
+        // (model: inherit, no name field). Installing agents/<id>.md on top
+        // would restore Claude frontmatter. Keep the Cursor surface file.
         return takeUniqueOperations(createFlatFileOperations({
           moduleId: module.id,
           repoRoot,
           sourceRelativePath,
           destinationDir: path.join(targetRoot, 'agents'),
           destinationNameTransform: toCursorAgentFileName,
+        }).filter(operation => {
+          const installedName = path.basename(operation.destinationPath);
+          return !fs.existsSync(path.join(repoRoot, '.cursor', 'agents', installedName));
         }));
       }
 
@@ -190,7 +202,7 @@ module.exports = createInstallTargetAdapter({
 
         const childOperations = fs.readdirSync(cursorRoot, { withFileTypes: true })
           .sort((left, right) => left.name.localeCompare(right.name))
-          .filter(entry => !['rules', 'hooks', 'hooks.json'].includes(entry.name))
+          .filter(entry => !['rules', 'hooks', 'hooks.json', '.agents'].includes(entry.name))
           .map(entry => createManagedOperation({
             moduleId: module.id,
             sourceRelativePath: path.join('.cursor', entry.name),

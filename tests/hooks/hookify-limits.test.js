@@ -26,13 +26,13 @@ function test(name, fn) {
 
 function createProject() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ecc-hookify-limits-'));
-  fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.cursor'), { recursive: true });
   return root;
 }
 
 function writeRule(root, slug, frontmatter, message) {
   fs.writeFileSync(
-    path.join(root, '.claude', 'hookify.' + slug + '.local.md'),
+    path.join(root, '.cursor', 'hookify.' + slug + '.local.md'),
     '---\n' + frontmatter.trim() + '\n---\n' + message + '\n'
   );
 }

@@ -2,6 +2,7 @@
 description: Use this agent when analyzing conversation transcripts to find behaviors worth preventing with hooks. Triggered by /hookify without arguments.
 model: inherit
 tools: Read, Grep
+readonly: true
 ---
 
 ## Prompt Defense Baseline

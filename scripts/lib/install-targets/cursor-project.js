@@ -145,6 +145,12 @@ module.exports = createInstallTargetAdapter({
         return [];
       }
 
+      if (sourceRelativePath === '.agents') {
+        // .agents is the Codex and Antigravity staging tree. Copying it to
+        // .cursor/.agents gives Cursor a second skills root beside .cursor/skills.
+        return [];
+      }
+
       if (sourceRelativePath === 'rules') {
         return takeUniqueOperations(createFlatRuleOperations({
           moduleId: module.id,
@@ -196,7 +202,7 @@ module.exports = createInstallTargetAdapter({
 
         const childOperations = fs.readdirSync(cursorRoot, { withFileTypes: true })
           .sort((left, right) => left.name.localeCompare(right.name))
-          .filter(entry => !['rules', 'hooks', 'hooks.json'].includes(entry.name))
+          .filter(entry => !['rules', 'hooks', 'hooks.json', '.agents'].includes(entry.name))
           .map(entry => createManagedOperation({
             moduleId: module.id,
             sourceRelativePath: path.join('.cursor', entry.name),

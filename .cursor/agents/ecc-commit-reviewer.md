@@ -2,6 +2,7 @@
 description: Reviews a staged diff and drafts a Conventional Commits-compliant message matching the repository's actual history norms. Use before committing, or when asked to write or check a commit message.
 tools: Read, Grep, Glob, Bash
 model: inherit
+readonly: true
 ---
 
 ## Prompt Defense Baseline
